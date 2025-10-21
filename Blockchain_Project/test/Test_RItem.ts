@@ -38,4 +38,14 @@ describe("test RItem721", () => {
       expect(await RItem.tokenURI(1)).to.be.equal(uri + CidNFT);
     });
   });
+  describe("test burn ", () => {
+    it("should revert if sender isn't owner", async () => {
+      await RItem.connect(accountA).mintWithURI(accountA.address, CidNFT);
+      await expect(RItem.connect(accountB).burn(1)).to.be.reverted;
+    });
+    it("should work correctly", async () => {
+      await RItem.connect(accountA).mintWithURI(accountA.address, CidNFT);
+      await expect(RItem.connect(accountA).burn(1)).to.emit(RItem, "Transfer").withArgs(accountA, address0, 1);
+    });
+  });
 });

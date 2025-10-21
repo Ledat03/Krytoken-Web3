@@ -29,7 +29,10 @@ const loadInfoUser = createSlice({
     fetchUserSwitch: (state, action) => {
       state.userAddress = action.payload.userAddress;
     },
+    unauthorizeUser: (state) => {
+      state.isConnected = false;
+    },
   },
 });
-export const { getUserInfo, fetchUserSwitch } = loadInfoUser.actions;
+export const { getUserInfo, fetchUserSwitch, unauthorizeUser } = loadInfoUser.actions;
 export default loadInfoUser.reducer;

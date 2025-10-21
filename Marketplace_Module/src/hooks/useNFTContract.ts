@@ -24,7 +24,18 @@ export const useNFTContract = () => {
       return null;
     }
   }, []);
-
+  const mintNFT = useCallback(async (address: string, tokenURI: string) => {
+    try {
+      const contract: ethers.Contract | null = await nftService.getContractNFT();
+      if (contract) {
+        const res = await nftService.mintWithURI(address, tokenURI);
+        return res;
+      }
+    } catch (error) {
+      throw error;
+    }
+    return "Can't mint NFT !";
+  }, []);
   const updateURI = useCallback(async (newURI: string) => {
     try {
       const contract: ethers.Contract | null = await nftService.getContractNFT();
@@ -80,6 +91,17 @@ export const useNFTContract = () => {
       throw error;
     }
   }, []);
+  const baseURI = useCallback(async () => {
+    try {
+      const contract: ethers.Contract | null = await nftService.getContractNFT();
+      if (contract) {
+        const URI: string = await nftService.getBaseURI();
+        return URI;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }, []);
   return {
     name,
     symbol,
@@ -91,5 +113,7 @@ export const useNFTContract = () => {
     setApprovalForAll,
     getTokenURI,
     transferFrom,
+    mintNFT,
+    baseURI,
   };
 };

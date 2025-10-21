@@ -12,8 +12,7 @@ class NFTService extends Web3Service {
     if (!this.provider || !this.signer) {
       await this.initCreate();
     }
-
-    return new ethers.Contract(NFTContract, ABI, this.provider);
+    return new ethers.Contract(NFTContract, ABI, this.signer);
   }
 
   //Main Action
@@ -44,14 +43,17 @@ class NFTService extends Web3Service {
   async mintWithURI(tokenURL: string, address: string): Promise<string | undefined> {
     const contract = await this.getContractNFT();
     const owner: string | null = await this.getOwner();
+    console.log("owner ", owner);
+    console.log("signer , ", address);
     if (contract && owner != null && address === owner) {
       try {
-        const tokenId = await contract.mint(tokenURL);
+        const tokenId = await contract.mintWithURI(address, tokenURL);
         return tokenId;
       } catch (e) {
         throw e;
       }
     }
+    return "Your contract is unavailable or signer is'n owner";
   }
   async updateBaseURI(newURI: string): Promise<boolean> {
     const resContract = await this.getContractNFT();
@@ -65,7 +67,18 @@ class NFTService extends Web3Service {
     }
     return false;
   }
-
+  async getBaseURI() {
+    const contract = await this.getContractNFT();
+    if (contract) {
+      try {
+        const res = await contract.getBaseURI();
+        return res;
+      } catch (error) {
+        throw error;
+      }
+    }
+    return;
+  }
   async approve(address: string, tokenId: number): Promise<boolean> {
     const resContract = await this.getContractNFT();
     if (resContract) {

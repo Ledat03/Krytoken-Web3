@@ -1,14 +1,12 @@
 package com.example.Marketplace_System.Config;
 
 import java.io.IOException;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,20 +18,12 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Base64;
-
 import com.example.Marketplace_System.Service.SwapTypeService;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jose.util.StandardCharset;
 
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
@@ -61,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain configSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(d -> d.disable())
-                .authorizeHttpRequests(authorRequest -> authorRequest.requestMatchers("/api/verify_signature","/api/check_user/**","/api/user/refresh_token").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(authorRequest -> authorRequest.requestMatchers("/api/verify_signature", "/api/check_user/**", "/api/user/refresh_token", "/api/user/log_out").permitAll().anyRequest().authenticated())
                 .formLogin(form -> form.disable())
                 .cors(configurer -> configurer.configurationSource(request -> {
             CorsConfiguration corsConfiguration = new CorsConfiguration();

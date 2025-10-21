@@ -70,7 +70,7 @@ const WalletConnect = () => {
   };
 
   const testApi = async () => {
-    const res = testExpiredToken();
+    const res = await testExpiredToken();
     console.log(res);
   };
   const IdentifyUser = async () => {

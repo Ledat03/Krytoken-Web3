@@ -1,8 +1,8 @@
-import { createSlice} from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 export interface INFT {
   name: string;
   description: string;
-  traits: string;
+  traits: ITrait;
   image: string;
 }
 interface IContract {
@@ -11,7 +11,11 @@ interface IContract {
   owner: string;
   balance: number;
 }
-
+export interface ITrait {
+  class: string;
+  rarity: string;
+  element: string;
+}
 const initialState: IContract = { name: "", symbol: "", owner: "", balance: 0 };
 
 const contractInfo = createSlice({

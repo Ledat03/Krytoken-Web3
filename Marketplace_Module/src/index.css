@@ -31,6 +31,7 @@
 }
 .input-custom {
   width: 700px;
+  min-height: fit-content;
   margin-top: 10px;
   border: 0 solid;
   background-color: rgb(20 20 21);
@@ -41,7 +42,10 @@
   border-radius: 5px;
   margin: 5px;
 }
-
+.select-custom {
+  background-color: black;
+  
+}
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
 

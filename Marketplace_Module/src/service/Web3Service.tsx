@@ -1,6 +1,21 @@
 // Web3Service.ts
 import { ethers } from "ethers";
-
+import { useDispatch } from "react-redux";
+import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
+export function logoutMetaMaskWallet() {
+  const dispatch = useDispatch();
+  try {
+    localStorage.removeItem("accessToken");
+    if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
+      window.ethereum.removeAllListeners("accountsChanged");
+      window.ethereum.removeAllListeners("chainChanged");
+      window.ethereum.removeAllListeners("disconnect");
+    }
+    dispatch(unauthorizeUser());
+  } catch (error) {
+    throw error;
+  }
+}
 export class Web3Service {
   protected provider: ethers.BrowserProvider | null = null;
   protected signer: ethers.JsonRpcSigner | null = null;
