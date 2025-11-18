@@ -24,11 +24,11 @@ export const useNFTContract = () => {
       return null;
     }
   }, []);
-  const mintNFT = useCallback(async (address: string, tokenURI: string) => {
+  const mintNFT = useCallback(async (tokenURI: string, address: string) => {
     try {
       const contract: ethers.Contract | null = await nftService.getContractNFT();
       if (contract) {
-        const res = await nftService.mintWithURI(address, tokenURI);
+        const res = await nftService.mintWithURI(tokenURI, address);
         return res;
       }
     } catch (error) {
@@ -102,6 +102,17 @@ export const useNFTContract = () => {
       throw error;
     }
   }, []);
+  const getOwnerOf = useCallback(async (tokenId: number) => {
+    try {
+      const contract: ethers.Contract | null = await nftService.getContractNFT();
+      if (contract) {
+        const URI: string | null = await nftService.getOwnerOf(tokenId);
+        return URI;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }, []);
   return {
     name,
     symbol,
@@ -115,5 +126,6 @@ export const useNFTContract = () => {
     transferFrom,
     mintNFT,
     baseURI,
+    getOwnerOf,
   };
 };

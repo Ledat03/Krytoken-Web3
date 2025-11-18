@@ -15,23 +15,8 @@ const SidebarContent = () => {
   const items = [
     {
       title: "Home",
-      url: "#",
+      url: "/",
       icon: Home,
-    },
-    {
-      title: "Discover",
-      url: "#",
-      icon: Inbox,
-    },
-    {
-      title: "Your Dashboard",
-      url: "#",
-      icon: Calendar,
-    },
-    {
-      title: "Advanced Search",
-      url: "#",
-      icon: Search,
     },
     {
       title: "Settings",
@@ -53,7 +38,7 @@ const SidebarContent = () => {
             <SidebarMenuButton asChild>
               <a href="/">
                 <Airplay />
-                <span>RARE Marketplace</span>
+                <span >Exclusive Cookies</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -78,7 +63,7 @@ const SidebarContent = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </UISidebarContent>
-      <SidebarFooter>Footer</SidebarFooter>
+      <SidebarFooter></SidebarFooter>
     </Sidebar>
   );
 };

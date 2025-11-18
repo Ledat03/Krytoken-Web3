@@ -9,6 +9,7 @@ import Dashboard from "./component/HomePage/Dashboard.tsx";
 import InfoSmartContract from "./component/HomePage/Feature/InfoSmartContract.tsx";
 import CreateNFT from "./component/HomePage/Feature/CreateNFT.tsx";
 import NFTManager from "./component/ManageNFT.tsx";
+import MarketplaceSettings from "./component/MarketSetting.tsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/nft/manage" element={<NFTManager />} />
             <Route path="/nft/new" element={<CreateNFT />} />
           </Route>
+          <Route path="/market/configuration" element={<MarketplaceSettings />} />
         </Routes>
       </BrowserRouter>
     </Provider>

@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { ITrait } from "./sliceNFTContract";
 export interface MetaData {
-  tokenId: number;
+  id: number;
   tokenURI: string;
 }
 export interface NFTProperty {
@@ -12,7 +12,7 @@ export interface NFTProperty {
   image: string;
 }
 export interface NFTsData {
-  transfers: MetaData[];
+  nfts: MetaData[];
 }
 export interface NFTs {
   ListNFTs: NFTProperty[];

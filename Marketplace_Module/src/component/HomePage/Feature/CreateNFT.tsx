@@ -5,53 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ImageUp, Trash, Pen } from "lucide-react";
 import type { INFT } from "../../../redux/slice/sliceNFTContract";
 import ether_icon from "../../../../public/ether-icon.svg";
-import { create } from "@storacha/client";
-import type { Client } from "@storacha/client";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { useNFTContract } from "@/hooks/useNFTContract";
 import { Select, SelectItem, SelectValue, SelectContent, SelectGroup, SelectTrigger } from "@/components/ui/select";
 import images from "@/utils/imageCustom";
+import UploadPinata from "@/service/UploadPinata";
+import { toast } from "sonner";
 const CreateNFT = () => {
-  const [client, setClient] = useState<Client | undefined>(undefined);
   const isConnected: boolean = useSelector((state: RootState) => state.Info.isConnected);
   const { mintNFT } = useNFTContract();
   const signer = useSelector((state: RootState) => state.Info.userAddress);
-  useEffect(() => {
-    createClient();
-    if (client) {
-      initConnect(client);
-    }
-  }, [isConnected]);
-  const createClient = async () => {
-    const res = await create();
-    if (res) {
-      setClient(res);
-    }
-  };
-  console.log("Image List ", images);
-  const initConnect = async (client: Client) => {
-    const account = await client.login("KrytosVN@gmail.com");
-    await account.plan.wait();
-    console.log("DID : ", await account.agent.spaces);
-    const key: string = "key";
-    const cidSpace: string = "z6MkoUETAoBrsSaoPNTdjM54qKxWDBrmNAJoficv4qLwCrAt";
-    const space: any = `did:${key}:${cidSpace}`;
-    await client.setCurrentSpace(space);
-    console.log("currentSpace", client.currentSpace());
-  };
-
+  const { handleUploadImage, handleUploadJson, uploadStatus } = UploadPinata();
+  const [Loading, setLoading] = useState<boolean>(false);
   let btnAddFile = useRef<HTMLInputElement>(null);
   const [img, setImg] = useState<string | undefined>(undefined);
   const handleClick = () => {
     btnAddFile.current?.click();
   };
   const formValidate = zod.object({
-    name: zod.string().min(2, "Name of NFT must be larger than 2 !").max(20, "Name of NFT is too long !"),
+    name: zod.string().min(2, "Name of NFT must be larger than 2 !").max(50, "Name of NFT is too long !"),
     description: zod.string().max(1000, "Description is too long !"),
     class: zod.string().min(1, "This NFT must has class !"),
     rarity: zod.string().min(1, "You must choose rarity for cookies !"),
@@ -60,7 +37,7 @@ const CreateNFT = () => {
       .instanceof(File)
       .refine((file) => file, "Choose image you want to NFT !")
       .refine((file) => file && ["image/png", "image/jpeg", "image/gif", "image/webp"].includes(file.type), "You must choose image file !")
-      .refine((file) => file && file.size <= 5 * 1024 * 1024, "This file is overloaded !"),
+      .refine((file) => file && file.size <= 10 * 1024 * 1024, "This file is overloaded !"),
   });
   const form = useForm<zod.infer<typeof formValidate>>({
     resolver: zodResolver(formValidate),
@@ -75,33 +52,41 @@ const CreateNFT = () => {
   });
   const onSubmit = async (value: zod.infer<typeof formValidate>) => {
     console.log(value);
-    if (client) {
-      const date = Date.now();
-      const formatName: string = `${date}-${value.imgFile.name.split(".").pop()}`;
-      const newFormat: File = new File([value.imgFile], formatName, { type: value.imgFile.type });
-      const imageUpload: any = await client.uploadFile(newFormat);
-      console.log(imageUpload);
-      if (imageUpload !== undefined) {
-        const imageURL: string = `https://ipfs.io/ipfs/${imageUpload}`;
-        console.log(imageURL);
-        const NFTinfo: INFT = {
-          name: value.name,
-          description: value.description,
-          traits: {
-            class: value.class,
-            rarity: value.rarity,
-            element: value.element,
-          },
-          image: imageURL,
-        };
-        console.log(NFTinfo.traits.class);
-        const blob = new Blob([JSON.stringify(NFTinfo)], { type: "application/json" });
-        const metadataFile = new File([blob], "metadata.json", { type: "application/json" });
-        const CIDmetadata = await client.uploadFile(metadataFile);
-        console.log(CIDmetadata.toString());
-        const data = await mintNFT(CIDmetadata.toString(), signer);
-        console.log(data);
+    const toastId = toast.loading("Minting...");
+    const imageUpload: any = await handleUploadImage(value.imgFile);
+    console.log(uploadStatus);
+    if (imageUpload) {
+      const imageURL: string = `${import.meta.env.VITE_GATEWAY_URL}/ipfs/${imageUpload.data.cid}`;
+      console.log(imageURL);
+      const NFTinfo: INFT = {
+        name: value.name,
+        description: value.description,
+        traits: {
+          class: value.class,
+          rarity: value.rarity,
+          element: value.element,
+        },
+        image: imageURL,
+      };
+      const fileName = NFTinfo.name.replaceAll(" ", "");
+      console.log(NFTinfo.name, "  ", fileName);
+      console.log("NFT : ", imageUpload?.data.cid);
+      const resUploaded = await handleUploadJson(NFTinfo, fileName);
+      if (resUploaded) {
+        try {
+          const data = await mintNFT(resUploaded?.data.cid, signer);
+          console.log("NFT already minted !", data);
+          form.reset();
+          setImg(undefined);
+          toast.dismiss(toastId);
+          toast.success("New NFT was minted !");
+        } catch (error) {
+          toast.dismiss(toastId);
+          toast.error("Error when mint NFT");
+          throw error;
+        }
       }
+      setLoading(false);
     }
   };
   return (
@@ -349,7 +334,7 @@ const CreateNFT = () => {
               <p className="text-gray-300">{`( Default Chain )`}</p>
             </div>
             <FormDescription className="text-yellow-300 text-center text-xs font-[600]">{"Alert : the contract is in the process of testing on Sepolia, so Sepolia is default chain"}</FormDescription>
-            <Button type="submit">Submit</Button>
+            <Button type="submit">{Loading == false ? "Mint" : "Minting..."}</Button>
           </form>
         </Form>
       </div>

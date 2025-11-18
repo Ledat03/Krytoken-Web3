@@ -35,6 +35,7 @@ export class Web3Service {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
+      console.log("run")
       if (accounts) {
         this.provider = new ethers.BrowserProvider(window.ethereum);
         this.signer = await this.provider.getSigner();

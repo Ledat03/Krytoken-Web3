@@ -3,6 +3,18 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
 @custom-variant dark (&:is(.dark *));
 @tailwind utilities;
+@keyframes pulseLive {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+@font-face {
+  font-family: "CookieRun Bold";
+  src: url("/font/CookieRun Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 #root {
   font-family: "Poppins", sans-serif;
 
@@ -10,7 +22,9 @@
     font-family: "Poppins", sans-serif;
   }
 }
-
+.animate-pulse-live {
+  animation: pulseLive 1.5s ease-in-out infinite;
+}
 .side-bar-item {
   @apply flex m-2 gap-2 align-baseline text-xl;
 }
@@ -44,7 +58,52 @@
 }
 .select-custom {
   background-color: black;
-  
+}
+.m-w {
+  max-width: 1100px !important;
+}
+.component-config {
+  display: flex;
+  align-items: center;
+}
+.background-black {
+  background-color: black !important;
+}
+.traits-custom {
+  margin-right: 20px;
+
+  border: 1px gray solid;
+  border-radius: 10px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 110px;
+  gap: 10px;
+  font-size: 20px;
+  font-family: "CookieRun Bold", sans-serif !important;
+}
+.cookie-text {
+  font-family: "CookieRun Bold", sans-serif !important;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

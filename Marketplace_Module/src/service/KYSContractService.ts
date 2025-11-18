@@ -17,7 +17,7 @@ export class ContractService extends Web3Service {
       this.initCreate();
     }
 
-    return new ethers.Contract(this.contractAddress, IERC20_ABI, this.provider);
+    return new ethers.Contract(this.contractAddress, IERC20_ABI, this.signer);
   }
 
   async getTokenBalance(userAddress: string): Promise<string> {
@@ -53,6 +53,7 @@ export class ContractService extends Web3Service {
       if (!contract) throw new Error("Contract not found");
 
       const amountWei = ethers.parseEther(amount);
+      console.log(this.signer);
       const tx = await contract.approve(spender, amountWei);
       await tx.wait();
       return true;
@@ -91,18 +92,6 @@ export class ContractService extends Web3Service {
     if (address) {
       const signature = await address.signMessage(nonce);
       return signature;
-    }
-  };
-  listenTransfers = async () => {
-    try {
-      const contract = await this.getContract();
-      if (contract) {
-        contract.on("Transfer", (from, to, value) => {
-          console.log(`Transfer Info : from ${from} to ${to} value ${value}`);
-        });
-      }
-    } catch (error) {
-      throw error;
     }
   };
 }

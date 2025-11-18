@@ -1,5 +1,4 @@
 import { useContract } from "@/hooks/useContract";
-import { contractService } from "@/service/KYSContractService";
 import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
@@ -7,9 +6,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { nftService } from "@/service/RItemService";
 import { useEffect, useState } from "react";
 import { testExpiredToken } from "@/service/MainService";
-import { marketService } from "@/service/MarketplaceService";
 import { ethers } from "ethers";
 import { Web3 } from "@/service/Web3Service";
+
 const WalletConnect = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { connectWallet, getSignature } = useContract();
@@ -17,11 +16,8 @@ const WalletConnect = () => {
   const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
   const account: string = useSelector((state: RootState) => state?.Info.userAddress);
   const nonce: number = useSelector((state: RootState) => state.identifyAddress.nonce);
-  const [MarketplaceContract, setContract] = useState<ethers.Contract | null>(null);
   const [NFTContract, setNFTContract] = useState<ethers.Contract | null>(null);
-  console.log("NFTContract", NFTContract);
-  console.log("account : ", account);
-  console.log(nonce);
+  const deployer = import.meta.env.VITE_DEPLOYER;
   const checkConnect = async () => {
     let res = await window.ethereum?.request({ method: "eth_accounts" });
     let WalletConnect: boolean = res.length > 0 ? true : false;
@@ -36,14 +32,10 @@ const WalletConnect = () => {
 
       if (isConnected) {
         await fetchNFTContract();
-        await getInfoContract();
       }
     })();
   }, [isConnected]);
-  const fetchContract = async () => {
-    const res = await marketService.getContractMarket();
-    setContract(res);
-  };
+
   const fetchNFTContract = async () => {
     const res = await nftService.getContractNFT();
     setNFTContract(res);
@@ -91,21 +83,6 @@ const WalletConnect = () => {
     console.log(`return ${account} ${nonce} ${signer}`);
     return;
   };
-  const getname = async () => {
-    let res = await MarketplaceContract?.isTokenSupported("0x29Db3E8c725261a6D40c2071770a72e7748Bc33B");
-    console.log(res);
-  };
-  const getInfoContract = async () => {
-    console.log("contract", await contractService.listenTransfers());
-    if (NFTContract) {
-      let name = await nftService.getName();
-      let owner = await nftService.getOwner();
-      let symbol = await nftService.getSymbol();
-      let balance = await nftService.getBalanceOf(account);
-      console.log(`NFT Contract Information : ${name} , ${owner} , ${symbol}, ${balance}`);
-    }
-  };
-
   let start = account.substring(0, 4);
   let end = account.substring(account.length, account.length - 4);
   return (
@@ -127,14 +104,11 @@ const WalletConnect = () => {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={() => SwitchAccount()}>Switch Address</DropdownMenuItem>
             <DropdownMenuItem onClick={() => IdentifyUser()}>Identify</DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                await fetchContract();
-                await getname();
-              }}
-            >
-              Connect Market Contract
-            </DropdownMenuItem>
+            {account === deployer && (
+              <DropdownMenuItem>
+                <a href="/market/configuration">Market Setting</a>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem>
               <a href="/nft/manage">Manage NFT</a>
             </DropdownMenuItem>

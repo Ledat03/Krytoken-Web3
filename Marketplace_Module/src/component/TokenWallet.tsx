@@ -171,28 +171,6 @@ const TokenWallet: React.FC = () => {
           </Button>
         </div>
       </div>
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">RItem Contract</h3>
-        <h3 className="text-gray-800">Contract Name : </h3>
-        <h3 className="text-gray-800">Contract Symbol : </h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Token Address</label>
-            <Input value={approveData.tokenAddress} onChange={(e) => setApproveData({ ...approveData, tokenAddress: e.target.value })} placeholder="0x..." className="font-mono text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Spender Address</label>
-            <Input value={approveData.spender} onChange={(e) => setApproveData({ ...approveData, spender: e.target.value })} placeholder="0x..." className="font-mono text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Amount</label>
-            <Input type="number" value={approveData.amount} onChange={(e) => setApproveData({ ...approveData, amount: e.target.value })} placeholder="0.0" step="0.001" />
-          </div>
-          <Button onClick={handleApprove} disabled={loading || !approveData.tokenAddress || !approveData.spender || !approveData.amount} variant="outline" className="w-full">
-            {loading ? "Processing..." : "Approve"}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };

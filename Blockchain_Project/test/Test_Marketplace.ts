@@ -122,7 +122,7 @@ describe("Marketplace Test-Case", () => {
       await expect(marketplace.connect(seller).addOrder(1, 0, KYS.target)).to.be.revertedWith("Price must be greater than 0");
     });
     it("should work correctly", async () => {
-      await expect(marketplace.connect(seller).addOrder(1, defaultPrice, KYS.target)).to.emit(marketplace, "OrderAdded").withArgs(1, address0, defaultPrice, KYS.target, 1);
+      await expect(marketplace.connect(seller).addOrder(1, defaultPrice, KYS.target)).to.emit(marketplace, "OrderAdded").withArgs(1, address0, seller, defaultPrice, KYS.target, 1);
     });
   });
   describe("executeOrder Test", () => {
@@ -192,6 +192,49 @@ describe("Marketplace Test-Case", () => {
       await KYS.connect(buyer).approve(marketplace.target, defaultPrice);
       await marketplace.connect(buyer).executeOrder(1);
       await expect(marketplace.connect(seller).cancelOrder(1)).to.be.revertedWith("This NFT has been sold !");
+    });
+  });
+  describe("Test Offer", () => {
+    beforeEach(async () => {
+      await RItem.connect(admin).mintWithURI(admin.address, CidNFT);
+      await RItem.connect(admin).setApprovalForAll(marketplace.target, true);
+      await KYS.connect(buyer).approve(marketplace.target, defaultBalance);
+      await KYS.connect(seller).approve(marketplace.target, defaultBalance);
+    });
+    describe("Test Add Offer Case", () => {
+      it("should revert if price > 0", async () => {
+        await expect(marketplace.connect(buyer).createOffer(0, KYS.target, 1)).to.be.revertedWith("Bad Price !");
+      });
+      it("should revert if token isn't allowance", async () => {
+        await expect(marketplace.connect(buyer).createOffer(defaultPrice, address0, 1)).to.be.revertedWith("This token isn't allowed on market !");
+      });
+      it("should work correctly", async () => {
+        await expect(marketplace.connect(buyer).createOffer(defaultPrice, KYS.target, 1)).to.emit(marketplace, "AddOffer").withArgs(buyer, defaultPrice, KYS.target, 1);
+      });
+    });
+    describe("Test Cancel Offer Case", () => {
+      it("should revert with `Cancel Rejected !`", async () => {
+        await marketplace.connect(buyer).createOffer(defaultPrice, KYS.target, 1);
+        await expect(marketplace.connect(admin).cancelOffer(1, 0)).to.be.revertedWith("Cancel Rejected !");
+      });
+      it("should work correctly", async () => {
+        await expect(marketplace.connect(buyer).createOffer(defaultPrice, KYS.target, 1)).to.emit(marketplace, "AddOffer").withArgs(buyer, defaultPrice, KYS.target, 1);
+        await expect(marketplace.connect(buyer).cancelOffer(1, 0)).to.emit(marketplace, "CancelOffer").withArgs(buyer, 1, 0);
+      });
+    });
+    describe("Test Accept Offer Case", () => {
+      it("should work correctly", async () => {
+        await marketplace.connect(buyer).createOffer(defaultPrice, KYS.target, 1);
+        await marketplace.connect(seller).createOffer(defaultPrice, KYS.target, 1);
+        await expect(marketplace.connect(admin).acceptOffer(1, 0)).to.emit(marketplace, "MatchedOffer").withArgs(buyer, admin, defaultPrice, 1);
+        expect(await RItem.connect(admin).ownerOf(1)).to.be.equal(buyer);
+      });
+      it("should revert if NFT has been sold, Buyer isn't owner", async () => {
+        await marketplace.connect(buyer).createOffer(defaultPrice, KYS.target, 1);
+        await marketplace.connect(seller).createOffer(defaultPrice, KYS.target, 1);
+        await marketplace.connect(admin).acceptOffer(1, 0);
+        await expect(marketplace.connect(admin).acceptOffer(1, 0)).to.be.revertedWith("You aren't owner !");
+      });
     });
   });
 });
