@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ChevronDown, Divide, Search, Sliders } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Search, Sliders } from "lucide-react";
 import NFTDetailDialog from "../common/Dialog";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
@@ -9,9 +9,10 @@ import images from "@/utils/imageCustom";
 import { FaArrowRight } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import { GoDotFill } from "react-icons/go";
-import LoadingIMG from "../../../public/Loading/Loading_Cookie.gif";
 import { queryMarketInfo } from "@/service/QueryService";
 import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
+import { LoadingLayout } from "../common/Loading";
+import { ethers } from "ethers";
 const collections = ["Charge", "Ambush", "Support", "Defense", "Ranged", "Magic", "Healing", "Bomber"];
 const rarities = ["Common", "Rare", "Epic", "Super_Epic", "Special", "Dragon", "Legendary", "Ancient", "Beast"];
 const element = ["Ice", "Darkness", "Earth", "Electricity", "Fire", "Grass", "Light", "Poison", "Steel", "Wind"];
@@ -19,7 +20,7 @@ export default function Dashboard() {
   const { status, fillData } = useListNFTs();
   const {} = queryMarketInfo();
   const { OrderAddedStatus } = queryOrderAdded();
-  const { OrderMatched, StatusMatched } = queryOrderMatched();
+  const { StatusMatched } = queryOrderMatched();
   const [Loading, setLoading] = useState<boolean>(true);
   const OrderData: IListOrderAdded = useSelector((state: RootState) => state.orderAdded);
   const [selectedClass, setSelectedClass] = useState<string[]>([]);
@@ -33,10 +34,19 @@ export default function Dashboard() {
   const NFTs: NFTProperty[] = useSelector((state: RootState) => state.InfoNFTs.ListNFTs);
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
+  interface InfoListing {
+    isActive: string;
+    price: string;
+  }
   const getData = async () => {
-    setLoading(true);
-    await fillData();
-    setLoading(false);
+    try {
+      setLoading(true);
+      await fillData();
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => {
     getData();
@@ -50,7 +60,14 @@ export default function Dashboard() {
     setSelectedNFT(nft);
     setIsDialogOpen(true);
   };
-
+  const mapOfNFT = useMemo(() => {
+    const map = new Map<string, InfoListing>();
+    OrderData.listings?.forEach((item) => {
+      const convertPrice = Number(ethers.formatUnits(String(item.price))).toFixed(0);
+      map.set(String(item.tokenId), { isActive: item.status, price: convertPrice });
+    });
+    return map;
+  }, [OrderData.listings]);
   const filteredNFTs = NFTs.filter((nft) => {
     const collectionMatch = selectedClass.length > 0 ? selectedClass.includes(nft.trait.class) : nft;
     const rarityMatch = selectedRarity.length > 0 ? selectedRarity.includes(nft.trait.rarity) : nft;
@@ -62,21 +79,12 @@ export default function Dashboard() {
   const toggleValue = (filter: string[], value: string) => {
     return filter.includes(value) ? filter.filter((v) => v !== value) : [...filter, value];
   };
-  const LoadingLayout = () => {
-    if (Loading) {
-      return (
-        <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-black">
-          <span className="relative size-2 w-[100px] h-[100px] ">
-            <img src={LoadingIMG} alt="" className=" absolute left-3 top-0" />
-            <span className="text-xl absolute bottom-0 left-3 cookie-text font-bold text-muted-foreground">Loading</span>
-          </span>
-        </div>
-      );
-    }
-  };
-  return (
+  return Loading ? (
+    <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-black">
+      <LoadingLayout Loading={Loading} />
+    </div>
+  ) : (
     <>
-      {LoadingLayout()}
       <div className="dark min-h-screen bg-background sm:w-[100%]">
         <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -214,7 +222,7 @@ export default function Dashboard() {
                     <div className="relative h-50 w-full overflow-hidden bg-background">
                       <img src={nft.image || "/placeholder.svg"} alt={nft.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 scale-90" />
 
-                      {OrderData?.orderAddeds?.some((item) => item.tokenId == nft.tokenId) && (
+                      {mapOfNFT.get(nft.tokenId.toString())?.isActive === "active" && (
                         <div className=" absolute left-2 top-2 text-[15px] text-green-400 flex items-center">
                           <GoDotFill className="animate-pulse-live" />
                           <span>Live</span>
@@ -230,14 +238,16 @@ export default function Dashboard() {
                       <h3 className="font-semibold text-foreground line-clamp-1 cookie-text text-[18px]">{nft.name}</h3>
                       <p className="text-xs text-muted-foreground">{}</p>
                       <div className="mt-4 space-y-2 border-t border-border pt-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Price</span>
-                          <span className="font-semibold text-primary">100ETH</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">USD Value</span>
-                          <span className="text-sm text-foreground">100</span>
-                        </div>
+                        {mapOfNFT.get(nft.tokenId.toString())?.isActive === "active" ? (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Price</span>
+                            <span className="font-semibold text-primary">{mapOfNFT.get(nft.tokenId.toString())?.price} KYS</span>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <span className="text-muted-foreground">Not Listed</span>
+                          </div>
+                        )}
                         <div className="flex opacity-0 group-hover:opacity-100 gap-2">
                           <span className=" flex mx-auto items-center gap-1 text-muted-foreground text-[13px]">
                             Click to see all detail <FaArrowRight />
@@ -258,7 +268,7 @@ export default function Dashboard() {
             )}
           </main>
         </div>
-        <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} />
+        {isDialogOpen && <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} />}
       </div>
     </>
   );

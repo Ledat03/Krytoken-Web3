@@ -3,7 +3,6 @@ import { useContract } from "../hooks/useContract";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Wallet, Send, RefreshCw, AlertCircle } from "lucide-react";
-import { nftService } from "@/service/RItemService";
 import { useNFTContract } from "@/hooks/useNFTContract";
 const TokenWallet: React.FC = () => {
   const { isConnected, account, networkInfo, tokens, loading, error, connectWallet, transferTokens, approveTokens, clearError } = useContract();
@@ -56,7 +55,6 @@ const TokenWallet: React.FC = () => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
-  console.log(tokens);
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
     if (num === 0) return "0";
@@ -66,11 +64,11 @@ const TokenWallet: React.FC = () => {
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg">
-        <Wallet className="w-16 h-16 text-gray-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Connect Your Wallet</h3>
-        <p className="text-gray-500 text-center mb-4">Connect your wallet to interact with smart contracts and manage your tokens.</p>
-        <Button onClick={connectWallet} disabled={loading} className="w-full">
+      <div className="dark flex flex-col items-center justify-center p-8 rounded-lg">
+        <Wallet className="w-16 h-16 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
+        <p className="text-center mb-4">Connect your wallet to interact with smart contracts and manage your tokens.</p>
+        <Button onClick={connectWallet} disabled={loading} className="w-fit">
           {loading ? "Connecting..." : "Connect Wallet"}
         </Button>
       </div>
@@ -78,12 +76,12 @@ const TokenWallet: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+    <div className="space-y-6 w-full overflow-y-auto">
+      <div className="dark p-6 rounded-lg shadow-sm border">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">Wallet Information</h2>
-          <Button onClick={connectWallet} disabled={loading} variant="outline" size="sm" className="text-black">
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}text-black`} />
+          <h2 className="text-2xl font-bold">Wallet Information</h2>
+          <Button onClick={connectWallet} disabled={loading} variant="outline" size="sm">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
@@ -91,11 +89,11 @@ const TokenWallet: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="text-sm font-medium text-gray-600">Account</label>
-            <p className="text-sm text-gray-800 font-mono">{formatAddress(account || "")}</p>
+            <p className="text-sm font-mono">{formatAddress(account || "")}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-600">Network</label>
-            <p className="text-sm text-gray-800">{networkInfo ? `${networkInfo.name} (${networkInfo.chainId})` : "Unknown"}</p>
+            <p className="text-sm">{networkInfo ? `${networkInfo.name} (${networkInfo.chainId})` : "Unknown"}</p>
           </div>
         </div>
         {error && (
@@ -109,17 +107,17 @@ const TokenWallet: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Token Balances</h3>
+      <div className="dark p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold mb-4">Token Balances</h3>
         <div className="space-y-3">
           {tokens?.map((token, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+            <div key={index} className="flex items-center justify-between p-3 rounded-md">
               <div>
-                <span className="font-medium text-gray-800">{token.symbol}</span>
+                <span className="font-medium">{token.symbol}</span>
                 <p className="text-xs text-gray-500 font-mono">{formatAddress(token.address)}</p>
               </div>
               <div className="text-right">
-                <span className="font-semibold text-gray-800">{formatBalance(token.balance)}</span>
+                <span className="font-semibold">{formatBalance(token.balance)}</span>
                 <p className="text-xs text-gray-500">{token.symbol}</p>
               </div>
             </div>
@@ -127,8 +125,8 @@ const TokenWallet: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+      <div className="dark p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Send className="w-5 h-5 mr-2" />
           Transfer Tokens
         </h3>
@@ -151,8 +149,8 @@ const TokenWallet: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Approve Tokens</h3>
+      <div className="dark p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold mb-4">Approve Tokens</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Token Address</label>
@@ -166,7 +164,7 @@ const TokenWallet: React.FC = () => {
             <label className="block text-sm font-medium text-gray-600 mb-1">Amount</label>
             <Input type="number" value={approveData.amount} onChange={(e) => setApproveData({ ...approveData, amount: e.target.value })} placeholder="0.0" step="0.001" />
           </div>
-          <Button onClick={handleApprove} disabled={loading || !approveData.tokenAddress || !approveData.spender || !approveData.amount} variant="outline" className="w-full">
+          <Button onClick={handleApprove} disabled={loading || !approveData.tokenAddress || !approveData.spender || !approveData.amount} variant="outline" className="w-fit">
             {loading ? "Processing..." : "Approve"}
           </Button>
         </div>

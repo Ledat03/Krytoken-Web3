@@ -3,43 +3,44 @@ import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { nftService } from "@/service/RItemService";
 import { useEffect, useState } from "react";
-import { testExpiredToken } from "@/service/MainService";
-import { ethers } from "ethers";
 import { Web3 } from "@/service/Web3Service";
-
+import { toast } from "sonner";
+import { logOut } from "@/service/MainService";
+import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
 const WalletConnect = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { connectWallet, getSignature } = useContract();
+  const { connectWallet, getSignature, error } = useContract();
   const [Loading, setLoading] = useState<boolean>(false);
+  const [PermissionAccount, setAccounts] = useState<[] | undefined>(undefined);
   const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
   const account: string = useSelector((state: RootState) => state?.Info.userAddress);
   const nonce: number = useSelector((state: RootState) => state.identifyAddress.nonce);
-  const [NFTContract, setNFTContract] = useState<ethers.Contract | null>(null);
+  const isVerified: boolean = useSelector((state: RootState) => state.identifyAddress.isAddressValid);
+
   const deployer = import.meta.env.VITE_DEPLOYER;
   const checkConnect = async () => {
-    let res = await window.ethereum?.request({ method: "eth_accounts" });
-    let WalletConnect: boolean = res.length > 0 ? true : false;
-    console.log("wallet connect", WalletConnect);
-    if (WalletConnect) {
-      await FetchInfoWallet();
+    let res: [] = await window.ethereum?.request({ method: "eth_accounts" });
+    setAccounts(res);
+    if (res) {
+      let WalletConnect: boolean = res.length > 0 ? true : false;
+      console.log("wallet connect", WalletConnect);
+      if (WalletConnect && nonce === 0) {
+        await FetchInfoWallet();
+      }
     }
   };
   useEffect(() => {
-    (async () => {
-      await checkConnect();
-
-      if (isConnected) {
-        await fetchNFTContract();
-      }
-    })();
-  }, [isConnected]);
-
-  const fetchNFTContract = async () => {
-    const res = await nftService.getContractNFT();
-    setNFTContract(res);
-  };
+    console.log(nonce);
+    checkConnect();
+    if (error) {
+      toast.error(error, { duration: 3000 });
+    }
+    if (nonce !== 0 && isVerified == false) {
+      console.log("Value : ", nonce);
+      IdentifyUser();
+    }
+  }, [isConnected, error, nonce]);
   const FetchInfoWallet = async () => {
     if (Loading) return;
     setLoading(true);
@@ -61,14 +62,30 @@ const WalletConnect = () => {
     await connectWallet();
   };
 
-  const testApi = async () => {
-    const res = await testExpiredToken();
-    console.log(res);
+  const DisconnectWallet = async () => {
+    try {
+      localStorage.removeItem("accessToken");
+      if (window.ethereum?.request) {
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      }
+      await logOut();
+      dispatch(unauthorizeUser());
+      toast.success("Wallet is disconnected");
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      throw error;
+    }
   };
   const IdentifyUser = async () => {
     await Web3.connectWallet();
     const signer = Web3.getSigner();
 
+    console.log(account, " 1", nonce !== 0, signer !== null);
     if (account && nonce !== 0 && signer !== null) {
       console.log(account, "    ", signer.getAddress());
       const signature = await getSignature(nonce.toString(), signer);
@@ -87,7 +104,7 @@ const WalletConnect = () => {
   let end = account.substring(account.length, account.length - 4);
   return (
     <>
-      {!isConnected ? (
+      {PermissionAccount == undefined || PermissionAccount.length === 0 ? (
         <button
           onClick={() => {
             FetchInfoWallet();
@@ -100,20 +117,19 @@ const WalletConnect = () => {
           <DropdownMenuTrigger>
             {start}...{end}
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="dark">
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={() => SwitchAccount()}>Switch Address</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => IdentifyUser()}>Identify</DropdownMenuItem>
             {account === deployer && (
               <DropdownMenuItem>
-                <a href="/market/configuration">Market Setting</a>
+                <a href="/home/market/configuration">Market Setting</a>
               </DropdownMenuItem>
             )}
             <DropdownMenuItem>
-              <a href="/nft/manage">Manage NFT</a>
+              <a href="/home/nft/manage">Manage NFT</a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={testApi}>Disconnected</DropdownMenuItem>
+            <DropdownMenuItem onClick={DisconnectWallet}>Disconnected</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

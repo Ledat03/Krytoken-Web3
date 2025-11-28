@@ -1,4 +1,4 @@
-import { FetchListNFT, FetchMarketInfo, FetchOrderAdded, FetchOrderCancel, FetchOrderMatched } from "@/GraphQL/SubgraphQuery";
+import { FetchListNFT, FetchMarketInfo, FetchOrderAdded, FetchOrderCancel, FetchOrderMatched, FetchSoldHistory } from "@/GraphQL/SubgraphQuery";
 import { useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { storedNFT, type NFTsData, type NFTProperty } from "@/redux/slice/sliceNFTs";
@@ -99,4 +99,14 @@ export const queryOrderMatched = () => {
   const OrderMatched = data;
   const StatusMatched = status;
   return { OrderMatched, StatusMatched };
+};
+export const queryHistoryByTokenId = (tokenId: string) => {
+  const { data, status } = useQuery({
+    queryKey: ["HistoryTransaction"],
+    queryFn: () => FetchSoldHistory(tokenId),
+  });
+  console.log(data)
+  const HistoryTransaction = data;
+  const HistoryStatus = status;
+  return { HistoryStatus, HistoryTransaction };
 };

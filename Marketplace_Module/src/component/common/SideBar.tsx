@@ -1,8 +1,8 @@
-import { Home, Inbox, Calendar, Search, Settings, Airplay, BookText } from "lucide-react";
+import { Home, Settings, BookText } from "lucide-react";
 import { Sidebar, SidebarContent as UISidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
-
+import Logo from "../../../public/background/Gingerbrave.webp";
 const SidebarContent = () => {
-  const { setOpen } = useSidebar();
+  const { open, setOpen } = useSidebar();
 
   const handleMouseEnter = () => {
     setOpen(true);
@@ -15,30 +15,30 @@ const SidebarContent = () => {
   const items = [
     {
       title: "Home",
-      url: "/",
+      url: "/home",
       icon: Home,
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/home/setting ",
       icon: Settings,
     },
     {
       title: "Contract Information",
-      url: "/feature/contact_info",
+      url: "/home/feature/contact_info",
       icon: BookText,
     },
   ];
 
   return (
     <Sidebar variant="inset" collapsible="icon" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <SidebarHeader>
-        <SidebarMenu className="stable-scrollbar">
+      <SidebarHeader className="p-0">
+        <SidebarMenu className="stable-scrollbar px-0">
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="/">
-                <Airplay />
-                <span >Exclusive Cookies</span>
+              <a href="/" className="min-h-[50px] relative">
+                <img src={Logo} className="absolute left-[-3px] min-w-[50px] h-[50px]" alt="" />
+                <span className={`absolute right-10 cookie-text text-2xl bg-yellow-900 rounded-2xl px-2 ${open ? "opacity-100 transition-all duration-500 ease-in" : "opacity-0 transition-all ease-in-out"}`}>Magic Oven</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

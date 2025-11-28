@@ -4,16 +4,21 @@ import images from "@/utils/imageCustom";
 import { useNFTContract } from "@/hooks/useNFTContract";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useEffect, useState } from "react";
-import { Quote } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
+import NFTDetailDialog from "./common/Dialog";
+import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
+import { queryMarketInfo, queryOrderAdded, queryOrderMatched } from "@/service/QueryService";
 export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: string }) {
   const { getOwnerOf } = useNFTContract();
+  const OrderData: IListOrderAdded = useSelector((state: RootState) => state.orderAdded);
+  const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
+  const {} = queryMarketInfo();
+  const { OrderAddedStatus } = queryOrderAdded();
+  const { StatusMatched } = queryOrderMatched();
   useEffect(() => {
     fetchOwner(nft.tokenId);
-  }, []);
+  }, [OrderAddedStatus, StatusMatched]);
   const [owner, setOwner] = useState<string>("");
   const [Open, setOpen] = useState({
     OpenDetail: false,
@@ -76,68 +81,7 @@ export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: str
             <span className=" self-center text-muted-foreground text-[14px] opacity-0 group-hover:opacity-100">Click to see more detail </span>
           </CardFooter>
         </Card>
-        <Dialog open={Open.OpenDetail} onOpenChange={closeDetail}>
-          <DialogContent className="dark m-w text-white">
-            <DialogHeader>
-              <DialogTitle>
-                {nft.name} - #000{nft.tokenId}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex gap-9">
-              <img src={nft.image} alt={nft.name} className="w-[400px] h-[400px]" />
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex mb-2.5 text-center">
-                  <DialogTitle className="cookie-text text-2xl">{nft.name}</DialogTitle>
-                </div>
-                <div className="my-3">
-                  <div className="flex">
-                    <div className="traits-custom">
-                      <DialogTitle className="text-[20px]">Element</DialogTitle>
-                      <div className="component-config">
-                        <img src={images[nft.trait.element]} alt="" />
-                        <span>{nft.trait.element}</span>
-                      </div>
-                    </div>
-                    <div className="traits-custom">
-                      <DialogTitle className="text-[20px]">Rarity</DialogTitle>
-                      <img src={images[nft.trait.rarity]} alt="" className="w-[140px] my-3" />
-                    </div>
-                    <div className="traits-custom">
-                      <DialogTitle className="text-[20px]">Class</DialogTitle>
-                      <h2 className="text-xl font-bold my-3">{nft.trait.class}</h2>
-                    </div>
-                  </div>
-                </div>
-                <div className=" rounded-4xl flex my-auto relative justify-center items-center border-1 h-[150px] w-[600px] text-center">
-                  <Quote className="mb-10px absolute left-5 top-5" />
-                  <p className="text-xl cookie-text">{nft.subscription}</p>
-                  <Quote className="mb-10px absolute bottom-[20px] right-5" />
-                </div>
-                <button onClick={() => setOpen((prev) => ({ ...prev, OpenSale: !Open.OpenSale }))} className="w-full border-1 border-gray-700 rounded-[15px] h-[40px]">
-                  {Open.OpenSale == false ? "List For Sale" : "Cancel"}
-                </button>
-                <div className={`flex gap-2 ${Open.OpenSale ? "opacity-100 w-fit h-fit transition-all duration-200" : "opacity-0 h-0 transition-all duration-300"}`}>
-                  <div className="flex justify-center items-center gap-3  rounded-2xl w-[400px]">
-                    <Input
-                      placeholder="Price"
-                      onChange={(e) => {
-                        setForm((prev) => ({ ...prev, price: Number(e.target.value) }));
-                      }}
-                    />
-                    <span>KYS</span>
-                  </div>
-                  <Button
-                    onClick={async () => {
-                      if (formSale.tokenId && formSale.price != 0 && formSale.tokenTransfer) await addOrder(formSale.tokenId, formSale.price, formSale.tokenTransfer);
-                    }}
-                  >
-                    List NFT
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {Open.OpenDetail && <NFTDetailDialog nft={nft} isOpen={Open.OpenDetail} onClose={() => closeDetail()} signer={signer} feeRate={infoMarket} ListOrder={OrderData} />}
       </>
     );
   }

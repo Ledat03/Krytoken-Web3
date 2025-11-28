@@ -22,14 +22,17 @@ import java.util.Objects;
 
 @Service
 public class AuthSignature {
+
     private final AddressService addressService;
     private final GenerateJWT generateJWT;
-    AuthSignature(AddressService addressService, GenerateJWT generateJWT){
+
+    AuthSignature(AddressService addressService, GenerateJWT generateJWT) {
         this.addressService = addressService;
         this.generateJWT = generateJWT;
     }
     @Value("${expired-time-refresh-token}")
     private long expiredRefreshToken;
+
     public ResponseEntity<?> verifySignature(VerifySignature verifySignature) throws SignatureException {
         Address address = addressService.findAddress(verifySignature.getAddress());
         if (Objects.isNull(address)) {
@@ -61,10 +64,10 @@ public class AuthSignature {
             address.setNonce(newNonce);
             String jwtRefreshToken = generateJWT.generateRefreshToken(verifySignature.getAddress());
             String jwtAccessToken = generateJWT.generateAccessToken(verifySignature.getAddress());
-            addressService.verifiedAddress(address.getAddress(),newNonce,jwtRefreshToken);
-            ResponseCookie responseCookie = ResponseCookie.from("refreshToken",jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).build();
-            VerifiedSignature verifiedSignature = new VerifiedSignature(address.getAddress(),jwtAccessToken,true);
-            return ResponseEntity.status(200).header(HttpHeaders.SET_COOKIE,responseCookie.toString()).body(verifiedSignature);
+            addressService.verifiedAddress(address.getAddress(), newNonce, jwtRefreshToken);
+            ResponseCookie responseCookie = ResponseCookie.from("refreshToken", jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).build();
+            VerifiedSignature verifiedSignature = new VerifiedSignature(address.getAddress(), jwtAccessToken, true, newNonce);
+            return ResponseEntity.status(200).header(HttpHeaders.SET_COOKIE, responseCookie.toString()).body(verifiedSignature);
         }
         return ResponseEntity.badRequest().body("Error Action !!!");
     }

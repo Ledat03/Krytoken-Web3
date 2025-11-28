@@ -1,21 +1,6 @@
 // Web3Service.ts
 import { ethers } from "ethers";
-import { useDispatch } from "react-redux";
-import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
-export function logoutMetaMaskWallet() {
-  const dispatch = useDispatch();
-  try {
-    localStorage.removeItem("accessToken");
-    if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
-      window.ethereum.removeAllListeners("accountsChanged");
-      window.ethereum.removeAllListeners("chainChanged");
-      window.ethereum.removeAllListeners("disconnect");
-    }
-    dispatch(unauthorizeUser());
-  } catch (error) {
-    throw error;
-  }
-}
+
 export class Web3Service {
   protected provider: ethers.BrowserProvider | null = null;
   protected signer: ethers.JsonRpcSigner | null = null;
@@ -31,19 +16,23 @@ export class Web3Service {
     }
   }
   public async connectWallet() {
-    if (typeof window !== "undefined" && window.ethereum) {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      console.log("run")
-      if (accounts) {
-        this.provider = new ethers.BrowserProvider(window.ethereum);
-        this.signer = await this.provider.getSigner();
+    try {
+      if (typeof window !== "undefined" && window.ethereum) {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+       
+        if (accounts) {
+          this.provider = new ethers.BrowserProvider(window.ethereum);
+          this.signer = await this.provider.getSigner();
+        }
+        if (this.signer) return this.signer?.address;
+      } else {
+        return "You Don't Have MetaMask";
       }
-      const address = this.signer?.getAddress();
-      return address;
+    } catch (error) {
+      throw error;
     }
-    return null;
   }
   public getProvider(): ethers.BrowserProvider | null {
     return this.provider;
@@ -51,6 +40,9 @@ export class Web3Service {
 
   public getSigner(): ethers.JsonRpcSigner | null {
     return this.signer;
+  }
+  public setSigner() {
+    this.signer = null;
   }
 }
 export const Web3 = new Web3Service();

@@ -120,6 +120,7 @@ class MarketplaceService extends Web3Service {
   }
   async createOffer(price: BigInt, transferToken: string, tokenId: number) {
     try {
+      console.log(this.signer)
       const contract = await this.getMarketContract();
       if (contract) {
         await contract.createOffer(price, transferToken, tokenId);

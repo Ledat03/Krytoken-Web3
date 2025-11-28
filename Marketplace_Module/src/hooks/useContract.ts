@@ -14,20 +14,23 @@ export const useContract = () => {
   const networkInfo: Network = useSelector((state: RootState) => state?.Info.networks);
   const tokens: TokenInfo[] = useSelector((state: RootState) => state.Info.tokenList);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | undefined>(undefined);
 
   const connectWallet = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError(undefined);
     try {
       const connectedAccount = await contractService.connectWallet();
-      if (connectedAccount) {
+      if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {
         const networkData = await loadNetworkInfo();
         const tokenData = await loadTokenBalances(connectedAccount);
         dispatch(getUserInfo({ userAddress: connectedAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
-        dispatch(fetchInfoUser(connectedAccount.toString()));
+        const value = await dispatch(fetchInfoUser(connectedAccount.toString()));
+        console.log(value);
+        return connectedAccount;
       } else {
-        setError("Failed to connect wallet");
+        console.error("Failed to connect wallet");
+        setError(connectedAccount || "Fail to connect");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -72,7 +75,7 @@ export const useContract = () => {
   const transferTokens = useCallback(
     async (to: string, amount: string) => {
       setLoading(true);
-      setError(null);
+      setError(undefined);
       try {
         const success = await contractService.transferToken(to, amount);
         if (success) {
@@ -94,7 +97,7 @@ export const useContract = () => {
 
   const getSignature = useCallback(async (nonce: string, address: JsonRpcSigner) => {
     setLoading(true);
-    setError(null);
+    setError(undefined);
     try {
       const success = await contractService.signMessage(nonce, address);
       return success;
@@ -107,7 +110,7 @@ export const useContract = () => {
 
   const approveTokens = useCallback(async (spender: string, amount: string) => {
     setLoading(true);
-    setError(null);
+    setError(undefined);
     try {
       const success = await contractService.approveToken(spender, amount);
       if (success) {
@@ -139,7 +142,6 @@ export const useContract = () => {
     };
 
     checkConnection();
-
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", async (accounts: string[]) => {
         if (accounts.length === 0) {
@@ -154,7 +156,6 @@ export const useContract = () => {
         window.location.reload();
       });
     }
-
     return () => {
       if (window.ethereum) {
         window.ethereum.removeAllListeners("accountsChanged");
@@ -175,6 +176,6 @@ export const useContract = () => {
     transferTokens,
     approveTokens,
     loadTokenBalances,
-    clearError: () => setError(null),
+    clearError: () => setError(undefined),
   };
 };

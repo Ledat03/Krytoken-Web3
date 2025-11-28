@@ -24,7 +24,6 @@ import com.example.Marketplace_System.Service.GenerateJWT;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-
 @RestController
 @RequestMapping("api")
 public class MainController {
@@ -42,10 +41,15 @@ public class MainController {
     }
 
     @PostMapping("/check_user/{address}")
-    public ResponseEntity<Object> checkUser(@PathVariable String address) {
+    public ResponseEntity<?> checkUser(@PathVariable String address, HttpServletRequest httpServletRequest) throws Exception {
+        Address fetchAddress = addressService.findAddress(address);
+        if (fetchAddress != null && fetchAddress.isVerified() == true && fetchAddress.getRefreshToken() != null) {
+            return refreshToken(httpServletRequest);
+
+        }
         long nonce = new SecureRandom().nextLong(999999);
         Address Info = addressService.saveAddress(address, nonce);
-        return ResponseEntity.ok().body(Info);
+        return ResponseEntity.status(201).body(Info);
 
     }
 
@@ -91,8 +95,12 @@ public class MainController {
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Your refresh token is expired, please login again !!");
         }
         if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isAfter(instant)) {
+            Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
+            long random = new SecureRandom().nextLong(99999);
+            fetchAddress.setNonce(random);
             String newAccessToken = generateJWT.generateAccessToken(jwtInfo.getSubject());
-            VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true);
+            VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true, random);
+            addressService.saveAddress(fetchAddress.getAddress(),random);
             return ResponseEntity.ok().body(verifiedSignature);
         }
         return ResponseEntity.status(403).body("Unauthenticated !!");

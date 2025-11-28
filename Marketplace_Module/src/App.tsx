@@ -10,7 +10,7 @@ function App() {
         <div className="w-full">
           <Header />
           <div className="content-container">
-            <Outlet />
+            <Outlet/>
           </div>
         </div>
         <Toaster richColors position="top-center" />

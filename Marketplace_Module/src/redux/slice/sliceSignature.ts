@@ -11,7 +11,7 @@ interface UserInfo {
 const initialState: UserInfo = { address: "", nonce: 0, isLoading: false, isError: false, isAddressValid: false };
 export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (address: string) => {
   const res = await Verify(address);
-
+  console.log("res data : ", res);
   return res.data;
 });
 

@@ -31,6 +31,9 @@ const loadInfoUser = createSlice({
     },
     unauthorizeUser: (state) => {
       state.isConnected = false;
+      state.tokenList = [];
+      state.networks = { chainId: 0, name: "" };
+      state.userAddress = "";
     },
   },
 });

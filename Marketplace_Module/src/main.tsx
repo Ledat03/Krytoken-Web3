@@ -9,7 +9,9 @@ import Dashboard from "./component/HomePage/Dashboard.tsx";
 import InfoSmartContract from "./component/HomePage/Feature/InfoSmartContract.tsx";
 import CreateNFT from "./component/HomePage/Feature/CreateNFT.tsx";
 import NFTManager from "./component/ManageNFT.tsx";
-import MarketplaceSettings from "./component/MarketSetting.tsx";
+import MarketplaceSettings from "./component/HomePage/Feature/MarketSetting.tsx";
+import WelcomePage from "./component/Welcome.tsx";
+import Setting from "./component/HomePage/Feature/Setting.tsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -22,11 +24,13 @@ createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<App />}>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/home" element={<App />}>
             <Route index element={<Dashboard />} />
-            <Route path="/feature/contact_info" element={<InfoSmartContract />} />
-            <Route path="/nft/manage" element={<NFTManager />} />
-            <Route path="/nft/new" element={<CreateNFT />} />
+            <Route path="/home/feature/contact_info" element={<InfoSmartContract />} />
+            <Route path="/home/nft/manage" element={<NFTManager />} />
+            <Route path="/home/nft/new" element={<CreateNFT />} />
+            <Route path="/home/setting" element={<Setting />} />
           </Route>
           <Route path="/market/configuration" element={<MarketplaceSettings />} />
         </Routes>

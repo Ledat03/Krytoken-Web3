@@ -4,9 +4,20 @@ import type { IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
 import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
 import type { IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import type { IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
-const endPoint: string = "https://api.studio.thegraph.com/query/122785/my-storage/version/latest";
+const endPoint: string = "https://api.studio.thegraph.com/query/122785/subgraph-nft/version/latest";
 const headers = { Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}` };
 
+interface Sales {
+  type: string;
+  tokenId: number;
+  price: BigInt;
+  timestamp: number;
+  seller: string;
+  buyer: string;
+}
+export interface ListSale {
+  sales: Sales[];
+}
 export const FetchListNFT = async (): Promise<NFTsData> => {
   try {
     const ListNFT = gql`
@@ -41,14 +52,14 @@ export const FetchOrderAdded = async () => {
   try {
     const fetchOrderAdded = gql`
       {
-        orderAddeds(where: { isMatched: false }) {
-          tokenTransfer
+        listings(where: { status: "active" }) {
           tokenId
+          status
+          soldAt
+          seller
           price
           orderId
-          isMatched
-          id
-          blockTimestamp
+          buyer
         }
       }
     `;
@@ -88,6 +99,28 @@ export const FetchOrderMatched = async () => {
       }
     `;
     return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrderMatched;
+  } catch (error) {
+    throw error;
+  }
+};
+export const FetchSoldHistory = async (tokenId: string) => {
+  try {
+    const fetchSoldHistory = gql`
+      query GetSales($tokenId: BigInt!) {
+        sales(where: { tokenId: $tokenId }, orderBy: timestamp, orderDirection: desc) {
+          type
+          tokenId
+          price
+          timestamp
+          seller
+          buyer
+        }
+      }
+    `;
+    const variables = {
+      tokenId: tokenId.toString(), // ← vẫn để string vì GraphQL sẽ tự convert
+    };
+    return (await request(endPoint, fetchSoldHistory, variables, headers)) as ListSale;
   } catch (error) {
     throw error;
   }

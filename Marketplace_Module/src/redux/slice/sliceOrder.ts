@@ -1,26 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-interface IOrderAdded {
-  tokenTransfer: string;
+export interface IOrderAdded {
   tokenId: number;
+  status: string;
+  soldAt: BigInt;
+  seller: string;
   price: BigInt;
   orderId: number;
-  blockTimestamp: number;
-  isMatched:boolean
+  buyer: string;
 }
 export interface IListOrderAdded {
-  orderAddeds: IOrderAdded[];
+  listings: IOrderAdded[];
 }
 
-const initialState: IListOrderAdded = { orderAddeds: [] };
+const initialState: IListOrderAdded = { listings: [] };
 
 const orderAdded = createSlice({
   name: "ListOrderAdded",
   initialState,
   reducers: {
     fillListOrder: (state, action) => {
-        
-      state.orderAddeds = action.payload?.orderAddeds;
+      state.listings = action.payload?.listings;
     },
   },
 });

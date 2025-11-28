@@ -1,6 +1,9 @@
 import axios from "axios";
 import { renewRefreshToken, logOut } from "./MainService";
-import { logoutMetaMaskWallet } from "./Web3Service";
+import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
+import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "@/redux/store";
 const API_Base = axios.create({
   baseURL: "http://localhost:8080/",
   withCredentials: true,
@@ -24,6 +27,7 @@ API_Base.interceptors.response.use(
     return response;
   },
   async (error) => {
+    const dispatch = useDispatch<AppDispatch>();
     console.log("response Error : ", error);
     const status = error.response.status;
     const OriginalRequest = error.config;
@@ -46,7 +50,15 @@ API_Base.interceptors.response.use(
       localStorage.removeItem("accessToken");
       console.log(res);
       console.error("Your session is expired");
-      logoutMetaMaskWallet();
+
+      localStorage.removeItem("accessToken");
+      if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
+        window.ethereum.removeAllListeners("accountsChanged");
+        window.ethereum.removeAllListeners("chainChanged");
+        window.ethereum.removeAllListeners("disconnect");
+      }
+      dispatch(unauthorizeUser());
+      toast.success("Wallet is disconnected", { duration: 2000 });
       return Promise.reject(error);
     }
     return Promise.reject(error);
