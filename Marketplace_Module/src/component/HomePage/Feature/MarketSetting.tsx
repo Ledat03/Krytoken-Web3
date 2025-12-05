@@ -159,7 +159,7 @@ export default function MarketplaceSettings() {
           </div>
         </div>
 
-        <div className="dark bg-card border border-border rounded-lg p-6">
+        {/* <div className="dark bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-foreground">Token Allowed</h2>
             <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
@@ -208,7 +208,7 @@ export default function MarketplaceSettings() {
               </tbody>
             </table>
           </div>
-        </div>
+        </div> */}
 
         <div className="flex gap-3 justify-end pt-4">
           <Button variant="outline" className="border-border hover:bg-accent/10 bg-transparent">

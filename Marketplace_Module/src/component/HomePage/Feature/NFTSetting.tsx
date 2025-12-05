@@ -5,7 +5,14 @@ import { useEffect, useState } from "react";
 import { useNFTContract } from "@/hooks/useNFTContract";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
-const NFTSetting = () => {
+import { useDispatch } from "react-redux";
+import { savePermission, type Permission } from "@/redux/slice/slicePermission";
+import type { AppDispatch } from "@/redux/store";
+interface TokenWalletProps {
+  data: Permission | null;
+  state: React.Dispatch<React.SetStateAction<number>>;
+}
+const NFTSetting = ({ data, state }: TokenWalletProps) => {
   const [Loading, setLoading] = useState<boolean>(false);
   const [URI, setURI] = useState<string>("");
   const [tempURI, setTemp] = useState<string>("");
@@ -15,6 +22,10 @@ const NFTSetting = () => {
     address: "",
     tokenId: 0,
   });
+  const MarketAddress: string = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
+
+  console.log(data);
+  const dispatch = useDispatch<AppDispatch>();
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const deployer = import.meta.env.VITE_DEPLOYER;
   const changeURI = async (value: string) => {
@@ -28,11 +39,53 @@ const NFTSetting = () => {
       throw error;
     }
   };
+  const setApproveAll = async () => {
+    try {
+      setLoading(true);
+      toast.promise(
+        setApprovalForAll(address, true)
+          .then((receipt) => {
+            return receipt;
+          })
+
+          .then((receipt) => {
+            if (address === MarketAddress && data) {
+              console.log("save");
+
+              const reqData: Permission = {
+                address: data?.address,
+                tokenAlowance: data?.tokenAlowance,
+                nftAlowanceAll: true,
+              };
+              dispatch(savePermission(reqData));
+            }
+            return receipt;
+          })
+          .then(() => {
+            state((prev) => prev + 1);
+          }),
+        {
+          loading: "Confirm Approve...",
+          success: () => `Approved permission for ${address.substring(0, 4)}...${address.substring(address.length, address.length - 4)}`,
+          error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
+        }
+      );
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     getBaseURI();
   }, [Loading]);
   return (
     <div className="flex flex-col justify-center items-start w-fit gap-3 px-10">
+      {data?.nftAlowanceAll && (
+        <div className="flex gap-3 items-center justify-center border border-green-500 rounded-lg p-2 w-full">
+          <span className="text-green-500">You have already approved permission for all NFTs</span>
+        </div>
+      )}
       {signer === deployer && (
         <>
           <div className="my-2">
@@ -49,6 +102,7 @@ const NFTSetting = () => {
                 type="button"
                 onClick={() => {
                   try {
+                    setLoading(true);
                     toast.promise(
                       changeURI(tempURI).then((receipt) => {
                         getBaseURI();
@@ -132,26 +186,11 @@ const NFTSetting = () => {
           />
           <Button
             type="button"
-            onClick={() => {
-              try {
-                toast.promise(
-                  setApprovalForAll(address, true).then((receipt) => {
-                    return receipt;
-                  }),
-                  {
-                    loading: "Confirm Approve...",
-                    success: () => `Approved permission for ${address.substring(0, 4)}...${address.substring(address.length, address.length - 4)}`,
-                    error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-                  }
-                );
-              } catch (error) {
-                throw error;
-              } finally {
-                setLoading(false);
-              }
+            onClick={async () => {
+              await setApproveAll();
             }}
           >
-            Change
+            {Loading ? "Approving..." : "Approve"}
           </Button>
         </div>
         <span className="text-green-500">Fill address you want to allow all permission to manage NFT </span>

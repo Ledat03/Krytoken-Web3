@@ -4,7 +4,7 @@ import NFTDetailDialog from "../common/Dialog";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import type { NFTProperty } from "@/redux/slice/sliceNFTs";
-import { queryOrderAdded, useListNFTs, queryOrderMatched } from "@/service/QueryService";
+import { queryOrderAdded, useListNFTs, queryOrderMatched, queryLatestSoldData } from "@/service/QueryService";
 import images from "@/utils/imageCustom";
 import { FaArrowRight } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,25 @@ import { queryMarketInfo } from "@/service/QueryService";
 import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
 import { LoadingLayout } from "../common/Loading";
 import { ethers } from "ethers";
+import { formatBalance } from "@/utils/common";
 const collections = ["Charge", "Ambush", "Support", "Defense", "Ranged", "Magic", "Healing", "Bomber"];
 const rarities = ["Common", "Rare", "Epic", "Super_Epic", "Special", "Dragon", "Legendary", "Ancient", "Beast"];
 const element = ["Ice", "Darkness", "Earth", "Electricity", "Fire", "Grass", "Light", "Poison", "Steel", "Wind"];
 export default function Dashboard() {
-  const { status, fillData } = useListNFTs();
-  const {} = queryMarketInfo();
-  const { OrderAddedStatus } = queryOrderAdded();
-  const { StatusMatched } = queryOrderMatched();
-  const [Loading, setLoading] = useState<boolean>(true);
+  const { LoadingData, refetchListNFT } = useListNFTs();
+  const { LoadingInfo, refetchMarketInfo } = queryMarketInfo();
+  const { OrderAddedLoading, refetchOrderAdded } = queryOrderAdded();
+  const { LoadingMatched, refetchOrderMatched } = queryOrderMatched();
+  const { LatestSoldLoading, refetchLatestSold } = queryLatestSoldData();
+  const onLoad = () => {
+    refetchListNFT();
+    refetchMarketInfo();
+    refetchOrderAdded();
+    refetchOrderMatched();
+    refetchLatestSold();
+  };
+  const isLoading = LoadingData || LoadingInfo || OrderAddedLoading || LoadingMatched || LatestSoldLoading;
+  console.log(isLoading);
   const OrderData: IListOrderAdded = useSelector((state: RootState) => state.orderAdded);
   const [selectedClass, setSelectedClass] = useState<string[]>([]);
   const [selectedRarity, setSelectedRarity] = useState<string[]>([]);
@@ -34,23 +44,11 @@ export default function Dashboard() {
   const NFTs: NFTProperty[] = useSelector((state: RootState) => state.InfoNFTs.ListNFTs);
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
+  const latestSold = useSelector((state: RootState) => state.LatestSoldData.latestSold);
   interface InfoListing {
     isActive: string;
     price: string;
   }
-  const getData = async () => {
-    try {
-      setLoading(true);
-      await fillData();
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    getData();
-  }, [status, OrderAddedStatus, StatusMatched]);
 
   const toggleFilter = (filter: string) => {
     setExpandedFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]));
@@ -60,6 +58,7 @@ export default function Dashboard() {
     setSelectedNFT(nft);
     setIsDialogOpen(true);
   };
+  console.log(latestSold);
   const mapOfNFT = useMemo(() => {
     const map = new Map<string, InfoListing>();
     OrderData.listings?.forEach((item) => {
@@ -68,20 +67,27 @@ export default function Dashboard() {
     });
     return map;
   }, [OrderData.listings]);
+  const mapOfLatestSold = useMemo(() => {
+    const map = new Map<number, string | undefined>();
+    latestSold?.forEach((item) => {
+      map.set(item.tokenId, formatBalance(item.lastSalePrice.toString()));
+    });
+    return map;
+  }, [latestSold]);
   const filteredNFTs = NFTs.filter((nft) => {
     const collectionMatch = selectedClass.length > 0 ? selectedClass.includes(nft.trait.class) : nft;
     const rarityMatch = selectedRarity.length > 0 ? selectedRarity.includes(nft.trait.rarity) : nft;
     const elementMatch = selectedElement.length > 0 ? selectedElement.includes(nft.trait.element) : nft;
-    // const priceMatch = nft.price >= priceRange[0] && nft.price <= priceRange[1];
+
     const searchMatch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
     return collectionMatch && rarityMatch && elementMatch && searchMatch;
   });
   const toggleValue = (filter: string[], value: string) => {
     return filter.includes(value) ? filter.filter((v) => v !== value) : [...filter, value];
   };
-  return Loading ? (
+  return isLoading ? (
     <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-black">
-      <LoadingLayout Loading={Loading} />
+      <LoadingLayout Loading={isLoading} />
     </div>
   ) : (
     <>
@@ -175,31 +181,6 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-
-                  <div className="rounded-lg border border-border bg-card p-4">
-                    <button onClick={() => toggleFilter("price")} className="flex w-full items-center justify-between text-sm font-semibold text-foreground hover:text-primary">
-                      <span className="flex items-center gap-2">
-                        <Sliders className="h-4 w-4" />
-                        Price Range
-                      </span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${expandedFilters.includes("price") ? "rotate-180" : ""}`} />
-                    </button>
-                    {expandedFilters.includes("price") && (
-                      <div className="mt-4 space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs text-muted-foreground">Min Price (ETH)</label>
-                          <input type="range" min="0" max="5" step="0.1" value={priceRange[0]} onChange={(e) => setPriceRange([Number.parseFloat(e.target.value), priceRange[1]])} className="w-full" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs text-muted-foreground">Max Price (ETH)</label>
-                          <input type="range" min="0" max="5" step="0.1" value={priceRange[1]} onChange={(e) => setPriceRange([priceRange[0], Number.parseFloat(e.target.value)])} className="w-full" />
-                        </div>
-                        <div className="rounded bg-background p-2 text-center text-sm text-foreground">
-                          {priceRange[0].toFixed(1)} - {priceRange[1].toFixed(1)} ETH
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </aside>
             </div>
@@ -209,15 +190,15 @@ export default function Dashboard() {
             {filteredNFTs.length > 0 ? (
               <div
                 className="w-full grid grid-cols-1 gap-6 justify-items-stretch
-                sm:grid-cols-2 sm:justify-items-center
-                lg:grid-cols-3 xl:grid-cols-4"
+                  sm:grid-cols-2 sm:justify-items-center
+                  lg:grid-cols-3 xl:grid-cols-4"
               >
                 {filteredNFTs.map((nft) => (
                   <div
                     key={nft.tokenId}
                     onClick={() => openNFTDetail(nft)}
                     className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20
-                 w-full max-w-sm sm:max-w-none"
+                  w-full max-w-sm sm:max-w-none"
                   >
                     <div className="relative h-50 w-full overflow-hidden bg-background">
                       <img src={nft.image || "/placeholder.svg"} alt={nft.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 scale-90" />
@@ -248,6 +229,18 @@ export default function Dashboard() {
                             <span className="text-muted-foreground">Not Listed</span>
                           </div>
                         )}
+                        <div>
+                          {latestSold
+                            .filter((item) => item.tokenId === nft.tokenId)
+                            .map((item) => {
+                              return (
+                                <div className="flex justify-between" key={item.tokenId}>
+                                  <span className="text-muted-foreground">Latest Sold</span>
+                                  <span className="font-semibold text-primary">{formatBalance(item.lastSalePrice.toString())} KYS</span>
+                                </div>
+                              );
+                            })}
+                        </div>
                         <div className="flex opacity-0 group-hover:opacity-100 gap-2">
                           <span className=" flex mx-auto items-center gap-1 text-muted-foreground text-[13px]">
                             Click to see all detail <FaArrowRight />
@@ -268,7 +261,7 @@ export default function Dashboard() {
             )}
           </main>
         </div>
-        {isDialogOpen && <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} />}
+        {isDialogOpen && selectedNFT && <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} latestSold={mapOfLatestSold.get(selectedNFT?.tokenId)} Load={onLoad} />}
       </div>
     </>
   );

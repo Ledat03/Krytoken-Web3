@@ -4,16 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Wallet, Send, RefreshCw, AlertCircle } from "lucide-react";
 import { useNFTContract } from "@/hooks/useNFTContract";
-const TokenWallet: React.FC = () => {
+import { useDispatch, useSelector } from "react-redux";
+import { savePermission, type Permission } from "@/redux/slice/slicePermission";
+import type { AppDispatch } from "@/redux/store";
+import type { RootState } from "@/redux/store";
+
+interface TokenWalletProps {
+  data: Permission | null;
+  state: React.Dispatch<React.SetStateAction<number>>;
+}
+
+const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
   const { isConnected, account, networkInfo, tokens, loading, error, connectWallet, transferTokens, approveTokens, clearError } = useContract();
+  const MarketAddress: string = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
+  const tokenAddress: string = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
   const { name, symbol, owner, balance, fetchInfoContract } = useNFTContract();
+  const nftAlowance = useSelector((state: RootState) => state.Permission.data?.nftAlowanceAll);
+  const dispatch = useDispatch<AppDispatch>();
   const [transferData, setTransferData] = useState({
     tokenAddress: "",
     to: "",
     amount: "",
   });
   const [approveData, setApproveData] = useState({
-    tokenAddress: "",
+    tokenAddress: tokenAddress,
     spender: "",
     amount: "",
   });
@@ -40,14 +54,22 @@ const TokenWallet: React.FC = () => {
   };
 
   const handleApprove = async () => {
-    if (!approveData.tokenAddress || !approveData.spender || !approveData.amount) {
+    if (!approveData.tokenAddress || !approveData.amount) {
       return;
     }
-
+    if (!approveData.spender) {
+      approveData.spender = MarketAddress;
+    }
     const success = await approveTokens(approveData.spender, approveData.amount);
-
-    if (success) {
-      setApproveData({ tokenAddress: "", spender: "", amount: "" });
+    if (success && nftAlowance !== undefined) {
+      const permissionData: Permission = {
+        address: account,
+        tokenAlowance: Number(approveData.amount),
+        nftAlowanceAll: nftAlowance,
+      };
+      await dispatch(savePermission(permissionData));
+      setApproveData((prev) => ({ ...prev, spender: "", amount: "" }));
+      state((prev) => prev + 1);
     }
   };
 
@@ -123,6 +145,16 @@ const TokenWallet: React.FC = () => {
             </div>
           ))}
         </div>
+        {data?.tokenAlowance !== 0 && (
+          <div className="flex items-center justify-between mb-4 p-3">
+            <h2 className="text-[18px] font-bold">Allowance Amount</h2>
+            <div className="flex flex-col items-end">
+              <p className="text-md font-bold">{data?.tokenAlowance}</p>
+              <p className="text-xs text-gray-500">KYS</p>
+            </div>
+            
+          </div>
+        )}
       </div>
 
       <div className="dark p-6 rounded-lg shadow-sm border">
@@ -154,17 +186,17 @@ const TokenWallet: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Token Address</label>
-            <Input value={approveData.tokenAddress} onChange={(e) => setApproveData({ ...approveData, tokenAddress: e.target.value })} placeholder="0x..." className="font-mono text-sm" />
+            <Input disabled placeholder="KYS token is default on marketplace" className="font-mono text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Spender Address</label>
-            <Input value={approveData.spender} onChange={(e) => setApproveData({ ...approveData, spender: e.target.value })} placeholder="0x..." className="font-mono text-sm" />
+            <Input value={approveData.spender} onChange={(e) => setApproveData({ ...approveData, spender: e.target.value })} placeholder="No need to fill if you want approve for marketplace" className="font-mono text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Amount</label>
             <Input type="number" value={approveData.amount} onChange={(e) => setApproveData({ ...approveData, amount: e.target.value })} placeholder="0.0" step="0.001" />
           </div>
-          <Button onClick={handleApprove} disabled={loading || !approveData.tokenAddress || !approveData.spender || !approveData.amount} variant="outline" className="w-fit">
+          <Button onClick={handleApprove} disabled={loading || !approveData.tokenAddress || !approveData.amount} variant="outline" className="w-fit">
             {loading ? "Processing..." : "Approve"}
           </Button>
         </div>

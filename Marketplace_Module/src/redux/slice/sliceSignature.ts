@@ -12,6 +12,9 @@ const initialState: UserInfo = { address: "", nonce: 0, isLoading: false, isErro
 export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (address: string) => {
   const res = await Verify(address);
   console.log("res data : ", res);
+  if (res.status == 200) {
+    localStorage.setItem("accessToken", res.data.accessToken);
+  }
   return res.data;
 });
 

@@ -4,6 +4,7 @@ import type { IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
 import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
 import type { IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import type { IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
+import type { IListSold } from "@/redux/slice/sliceLastestSold";
 const endPoint: string = "https://api.studio.thegraph.com/query/122785/subgraph-nft/version/latest";
 const headers = { Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}` };
 
@@ -124,4 +125,20 @@ export const FetchSoldHistory = async (tokenId: string) => {
   } catch (error) {
     throw error;
   }
+};
+export const FetchLatestSold = async () => {
+  const fetchData = gql`
+    query GetAllNFTsLastSale {
+      nftstats_collection {
+        tokenId
+        lastSalePrice
+        lastSaleBuyer
+        lastSaleSeller
+        lastSaleTimestamp
+        lastSaleType
+        totalSales
+      }
+    }
+  `;
+  return (await request(endPoint, fetchData, {}, headers)) as IListSold;
 };

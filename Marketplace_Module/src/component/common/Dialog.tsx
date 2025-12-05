@@ -14,8 +14,11 @@ import { MdOutlineCancel } from "react-icons/md";
 import { FetchSoldHistory, type ListSale } from "@/GraphQL/SubgraphQuery";
 import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
 4;
-import { formatDistanceToNow } from "date-fns";
+import { FormatTime } from "@/utils/common";
 import { LoadingLayout } from "./Loading";
+import { toast } from "sonner";
+import { getPermission } from "@/service/MainService";
+import { formatBalance } from "@/utils/common";
 interface NFTDetailDialogProps {
   nft: NFTProperty | null;
   isOpen: boolean;
@@ -23,17 +26,20 @@ interface NFTDetailDialogProps {
   signer: string;
   feeRate: any;
   ListOrder: IListOrderAdded;
+  Load: () => void;
+  latestSold: string | undefined;
 }
 interface MatchedNFT {
   owner: string;
   price: string;
   status: string;
 }
-export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder }: NFTDetailDialogProps) {
-  const { connectMarket, createOffer, getOffers, acceptOffer, executeOrder, cancelOffer, addOrder } = useMarketContract();
+export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder, latestSold, Load }: NFTDetailDialogProps) {
+  const { connectMarket, createOffer, getOffers, acceptOffer, executeOrder, cancelOffer, addOrder, cancelOrder } = useMarketContract();
   const { getOwnerOf } = useNFTContract();
   const KYSToken: string = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
   const [Loading, setLoading] = useState<boolean>(true);
+  const [refetch, setFetch] = useState<boolean>(false);
   const [OfferPrice, setPrice] = useState<number>(0);
   const [OrderPrice, setOrderPrice] = useState<number>(0);
   const [ListOffers, setList] = useState<[]>([]);
@@ -50,13 +56,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     });
     return map;
   }, [ListOrder.listings]);
-
-  const formatBalance = (balance: string) => {
-    const num = BigInt(balance);
-    if (num === 0n) return "0";
-    if (num < 0.001) return "< 0.001";
-    return ethers.formatUnits(num, 18);
-  };
+  console.log(ListOrder.listings);
   const [SelectedOffer, setOffer] = useState({ indexNFT: 0, tokenId: nft?.tokenId, price: 0 });
   const [SelectedOrder, setOrder] = useState<number>(0);
 
@@ -80,32 +80,31 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       }
     }
   };
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      await getContract();
+      const order = ListOrder.listings?.find((item) => item?.tokenId === nft?.tokenId);
+      if (order) setOrder(order.orderId);
+      if (nft) {
+        await queryHistory();
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     if (!nft || !isOpen) {
       setLoading(true);
       return;
     }
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        await getContract();
-        const order = ListOrder.listings?.find((item) => item?.tokenId === nft?.tokenId);
-        if (order) setOrder(order.orderId);
-        if (nft) {
-          await queryHistory();
-        }
-      } catch (error) {
-        throw new Error("Error in Dialog.tsx");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, [nft, isOpen]);
-  const FormatTime = (time: number) => {
-    const date = new Date(time * 1000);
-    return formatDistanceToNow(date, { addSuffix: true });
-  };
+    if (refetch === false) loadData();
+    if (signer) {
+      getPermission(signer);
+    }
+  }, [nft, isOpen, refetch]);
   const getContract = async () => {
     setLoading(true);
     const res = await connectMarket();
@@ -154,20 +153,59 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     }
   };
   const addOffer = async () => {
-    const res = await createOffer(OfferPrice, KYSToken, Number(nft?.tokenId));
-    return res;
+    try {
+      setFetch(true);
+      toast.promise(
+        createOffer(OfferPrice, KYSToken, Number(nft?.tokenId)).then((res) => {
+          setFetch(false);
+          setShow((prev) => ({ ...prev, showAddOffer: false, showOffer: false }));
+          setPrice(0);
+          return res;
+        }),
+        {
+          loading: "Creating offer...",
+          success: "Offer created successfully!,You need to wait for the transaction to be done",
+          error: "Error creating offer",
+        }
+      );
+    } catch (error) {
+      throw error;
+    } finally {
+    }
+  };
+  const cancelOffered = async (tokenId: number, index: number) => {
+    try {
+      await cancelOffer(tokenId, index);
+      toast.success("Cancel offer success,You need to wait for the transaction to be done");
+    } catch (error) {
+      toast.error(error instanceof String ? error : "Error in cancel offer");
+      throw error;
+    } finally {
+      Load();
+    }
+  };
+  const confirmOffered = async (tokenId: number, index: number) => {
+    try {
+      await acceptOffer(tokenId, index);
+      toast.success("Offer is accepted,You need to wait for the transaction to be done");
+    } catch (error) {
+      toast.error(error instanceof String ? error : "Error in accept offer");
+      throw error;
+    } finally {
+      Load();
+    }
   };
   const flowNotice = () => {
     if (show.showConfirmOffer) {
       return (
         <Dialog open={show.showConfirmOffer} onOpenChange={CloseConfirm}>
-          <DialogContent>
+          <DialogContent className="dark text-white">
             <DialogHeader>
               <DialogTitle>Confirm Offer </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col">
-              <span>You accept offer NFT with tokenId : #00{nft?.tokenId}</span>
-              <span>Sale Price : {SelectedOffer.price}</span>
+              <span>You cancel offer NFT with tokenId : #00{nft?.tokenId}</span>
+              <span>Offer Price : {SelectedOffer.price}</span>
               <span>
                 Market Fee ( {feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal))}% ) : {SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS
               </span>
@@ -176,7 +214,14 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
             <DialogFooter>
               <Button
                 onClick={async () => {
-                  await acceptOffer(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                  try {
+                    await confirmOffered(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                  } catch (error) {
+                    throw error;
+                  } finally {
+                    CloseConfirm();
+                    Load();
+                  }
                 }}
               >
                 Confirm
@@ -190,22 +235,25 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     if (show.showCancelOffer) {
       return (
         <Dialog open={show.showCancelOffer} onOpenChange={CloseCancel}>
-          <DialogContent>
+          <DialogContent className="dark text-white">
             <DialogHeader>
               <DialogTitle>Cancel Offer </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col">
-              <span>You accept offer NFT with tokenId : #00{nft?.tokenId}</span>
-              <span>Sale Price : {SelectedOffer.price}</span>
-              <span>
-                Market Fee ( {feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal))}% ) : {SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS
-              </span>
-              <span>You will receive :{SelectedOffer.price - SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS</span>
+              <span>You cancel offer NFT with tokenId : #00{nft?.tokenId}</span>
+              <span>Sale Price : {formatBalance(BigInt(SelectedOffer.price).toString())} KYS</span>
             </div>
             <DialogFooter>
               <Button
                 onClick={async () => {
-                  await cancelOffer(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                  try {
+                    await cancelOffered(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                  } catch (error) {
+                    throw error;
+                  } finally {
+                    CloseCancel();
+                    Load();
+                  }
                 }}
               >
                 Confirm
@@ -271,8 +319,18 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Latest Sale</span>
-                        <span className="text-lg font-semibold text-foreground">100</span>
+                        {latestSold ? (
+                          <>
+                            {" "}
+                            <span className="text-sm text-muted-foreground">Latest Sale</span>
+                            <span className="text-lg font-semibold text-foreground">{latestSold} KYS</span>
+                          </>
+                        ) : (
+                          <>
+                            {" "}
+                            <span className="text-sm text-muted-foreground">Not Sale</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -306,9 +364,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                         className="flex-1 hover:bg-black hover:text-white"
                         size="lg"
                         onClick={async () => {
-                          setShow((prev) => {
-                            return { ...prev, showAddOffer: !prev.showAddOffer };
-                          });
+                          await cancelOrder(ListOrder.listings[0].orderId);
                         }}
                       >
                         <div className="flex items-center gap-2 text-[15px]">
@@ -375,7 +431,19 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                         </div>
                         <Button
                           onClick={async () => {
-                            await addOrder(nft.tokenId, OrderPrice, KYSToken);
+                            setFetch(true);
+                            try {
+                              await addOrder(nft.tokenId, OrderPrice, KYSToken);
+                            } catch (error) {
+                              throw error;
+                            } finally {
+                              setShow((prev) => {
+                                return { ...prev, showAddOrder: !prev.showAddOrder };
+                              });
+                              setOrderPrice(0);
+                              setFetch(false);
+                              Load();
+                            }
                           }}
                         >
                           Accept
@@ -473,7 +541,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                                       setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item.index), price: item?.price }));
                                     }}
                                   >
-                                    Accept Offer{item.index}
+                                    Accept Offer
                                   </Button>
                                 )}
                               </li>

@@ -20,9 +20,9 @@ const orderMatched = createSlice({
   initialState,
   reducers: {
     fillListMatched: (state, action) => {
-      // if (action) {
-      //   state.orderMatcheds = action.payload.orderAddeds;
-      // }
+      if (action) {
+        state.orderMatcheds = action.payload?.orderAddeds;
+      }
     },
   },
 });

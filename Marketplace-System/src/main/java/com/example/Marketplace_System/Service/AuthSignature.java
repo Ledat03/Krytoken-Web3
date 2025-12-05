@@ -33,7 +33,7 @@ public class AuthSignature {
     @Value("${expired-time-refresh-token}")
     private long expiredRefreshToken;
 
-    public ResponseEntity<?> verifySignature(VerifySignature verifySignature) throws SignatureException {
+    public ResponseEntity<?>verifySignature(VerifySignature verifySignature) throws SignatureException {
         Address address = addressService.findAddress(verifySignature.getAddress());
         if (Objects.isNull(address)) {
             return ResponseEntity.badRequest().body("Invalid address !!");

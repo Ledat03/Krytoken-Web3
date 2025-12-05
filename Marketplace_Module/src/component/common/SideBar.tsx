@@ -36,9 +36,15 @@ const SidebarContent = () => {
         <SidebarMenu className="stable-scrollbar px-0">
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <a href="/" className="min-h-[50px] relative">
+              <a
+                href="/"
+                className="min-h-[50px] relative  [&:hover]:!bg-black
+    [&:hover]:!text-white
+    data-[state=open]:[&:hover]:!bg-black
+    data-[state=open]:[&:hover]:!text-white"
+              >
                 <img src={Logo} className="absolute left-[-3px] min-w-[50px] h-[50px]" alt="" />
-                <span className={`absolute right-10 cookie-text text-2xl bg-yellow-900 rounded-2xl px-2 ${open ? "opacity-100 transition-all duration-500 ease-in" : "opacity-0 transition-all ease-in-out"}`}>Magic Oven</span>
+                <span className={`absolute right-10 cookie-text text-2xl bg-yellow-900 rounded-2xl px-2 ${open ? "opacity-100 transition-all duration-500 ease-in" : "opacity-0 transition-all ease-in-out"}hover:text-yellow-900`}>Magic Oven</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

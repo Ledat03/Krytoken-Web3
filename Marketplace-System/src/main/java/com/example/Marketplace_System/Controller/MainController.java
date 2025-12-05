@@ -9,6 +9,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,12 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.Marketplace_System.DTO.VerifiedSignature;
 import com.example.Marketplace_System.DTO.VerifySignature;
 import com.example.Marketplace_System.Model.Address;
+import com.example.Marketplace_System.Model.Permission;
 import com.example.Marketplace_System.Service.AddressService;
 import com.example.Marketplace_System.Service.AuthSignature;
 import com.example.Marketplace_System.Service.GenerateJWT;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("api")
 public class MainController {
@@ -42,13 +45,14 @@ public class MainController {
 
     @PostMapping("/check_user/{address}")
     public ResponseEntity<?> checkUser(@PathVariable String address, HttpServletRequest httpServletRequest) throws Exception {
-        Address fetchAddress = addressService.findAddress(address);
+            Address fetchAddress = addressService.findAddress(address);
         if (fetchAddress != null && fetchAddress.isVerified() == true && fetchAddress.getRefreshToken() != null) {
             return refreshToken(httpServletRequest);
 
         }
         long nonce = new SecureRandom().nextLong(999999);
         Address Info = addressService.saveAddress(address, nonce);
+        addressService.savePermission(address, 0, false);
         return ResponseEntity.status(201).body(Info);
 
     }
@@ -100,7 +104,7 @@ public class MainController {
             fetchAddress.setNonce(random);
             String newAccessToken = generateJWT.generateAccessToken(jwtInfo.getSubject());
             VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true, random);
-            addressService.saveAddress(fetchAddress.getAddress(),random);
+            addressService.saveAddress(fetchAddress.getAddress(), random);
             return ResponseEntity.ok().body(verifiedSignature);
         }
         return ResponseEntity.status(403).body("Unauthenticated !!");
@@ -109,5 +113,33 @@ public class MainController {
     @PostMapping("/expiredToken")
     public ResponseEntity<?> expiredToken() {
         return ResponseEntity.status(200).body("Call Success !!");
+    }
+
+    @GetMapping("/check/permission/{address}")
+    public ResponseEntity<Permission> getPermission(@PathVariable String address) {
+        Permission existPermission = addressService.findPermission(address);
+        if (existPermission != null) {
+            return ResponseEntity.ok().body(existPermission);
+        } else {
+            Permission newPermission = new Permission();
+            newPermission.setAddress(address);
+            newPermission.setTokenAlowance(0);
+            newPermission.setNftAlowanceAll(false);
+            addressService.savePermission(address, 0, false);
+            return ResponseEntity.ok().body(newPermission);
+        }
+    }
+
+    @PostMapping("/update/permission")
+    public ResponseEntity<?> updatePermission(@RequestBody Permission permission) {
+        Permission existPermission = addressService.findPermission(permission.getAddress());
+        if (existPermission != null) {
+            existPermission.setTokenAlowance(permission.getTokenAlowance());
+            existPermission.setNftAlowanceAll(permission.isNftAlowanceAll());
+            addressService.savePermission(existPermission.getAddress(), existPermission.getTokenAlowance(), existPermission.isNftAlowanceAll());
+            return ResponseEntity.ok().body(existPermission);
+        } else {
+            return ResponseEntity.status(404).body("Permission not found !!");
+        }
     }
 }

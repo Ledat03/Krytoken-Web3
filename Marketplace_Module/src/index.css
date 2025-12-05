@@ -11,6 +11,14 @@
     transform: translateX(-50%);
   }
 }
+@keyframes slideRight {
+  0% {
+    transform: translateX(-100px);
+  }
+  100% {
+    transform: translateX(calc(100vw + 100px));
+  }
+}
 @keyframes pulseLive {
   0%,
   100% {
