@@ -2,18 +2,17 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export interface IOrderAdded {
   tokenId: number;
-  status: string;
-  soldAt: BigInt;
-  seller: string;
+  isListing: boolean;
   price: BigInt;
   orderId: number;
-  buyer: string;
+  owner: string;
 }
-export interface IListOrderAdded {
+
+export interface IListOrder {
   listings: IOrderAdded[];
 }
 
-const initialState: IListOrderAdded = { listings: [] };
+const initialState: IListOrder = { listings: [] };
 
 const orderAdded = createSlice({
   name: "ListOrderAdded",

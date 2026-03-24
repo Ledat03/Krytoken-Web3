@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import "@nomicfoundation/hardhat-chai-matchers";
 describe("Marketplace Test-Case", () => {
   let [admin, seller, buyer, feeRecipient, sampleToken, tempFeeRecipient]: any = [];
   let address0: any = "0x0000000000000000000000000000000000000000";

@@ -3,6 +3,7 @@ import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LuCircleUser } from "react-icons/lu";
 import { useEffect, useState } from "react";
 import { Web3 } from "@/service/Web3Service";
 import { toast } from "sonner";
@@ -104,7 +105,7 @@ const WalletConnect = () => {
   let end = account.substring(account.length, account.length - 4);
   return (
     <>
-      {PermissionAccount == undefined || PermissionAccount.length === 0 ? (
+      {PermissionAccount == undefined || PermissionAccount.length === 0 || account === undefined ? (
         <button
           onClick={() => {
             FetchInfoWallet();
@@ -114,11 +115,13 @@ const WalletConnect = () => {
         </button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            {start}...{end}
+          <DropdownMenuTrigger className="relative">
+            <p>
+              <LuCircleUser size={30} className=" absolute left-[-35px] top-[-5px]" />
+              {start}...{end}
+            </p>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark">
-            <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={() => SwitchAccount()}>Switch Address</DropdownMenuItem>
             {account === deployer && (
               <DropdownMenuItem>

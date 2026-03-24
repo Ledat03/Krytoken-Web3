@@ -6,15 +6,15 @@ import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { useListNFTs } from "@/service/QueryService";
 export default function NFTManager() {
-  const { status, fillData } = useListNFTs();
+  const { NFTstatus, refetchListNFT } = useListNFTs();
   const mNFTs = useSelector((state: RootState) => state.InfoNFTs.ListNFTs);
 
   useEffect(() => {
     getListNFTs();
-  }, [status]);
+  }, [NFTstatus]);
 
   const getListNFTs = async () => {
-    await fillData();
+    await refetchListNFT();
   };
 
   const signer = useSelector((state: RootState) => state.Info.userAddress);
@@ -31,7 +31,7 @@ export default function NFTManager() {
             {signer === deployer && (
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
                 <Plus className="mr-2 h-5 w-5" />
-                <a href="/nft/new">Add NFT</a>
+                <a href="/home/nft/new">Add NFT</a>
               </Button>
             )}
           </div>

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { storedNFT, type NFTsData, type NFTProperty } from "@/redux/slice/sliceNFTs";
 import { fetchMarketInfo, type IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
-import { fillListOrder, type IListOrderAdded } from "@/redux/slice/sliceOrder";
+import { fillListOrder, type IOrderAdded } from "@/redux/slice/sliceOrder";
 import { fillListCancel, type IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import { fillListMatched, type IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
 import { useEffect } from "react";
@@ -70,7 +70,7 @@ export const queryMarketInfo = () => {
 
 export const queryOrderAdded = () => {
   const dispatch = useDispatch();
-  const { data, status, isLoading, refetch } = useQuery<IListOrderAdded>({
+  const { data, status, isLoading, refetch } = useQuery<IOrderAdded>({
     queryKey: ["OrderAdded"],
     queryFn: () => FetchOrderAdded(),
   });

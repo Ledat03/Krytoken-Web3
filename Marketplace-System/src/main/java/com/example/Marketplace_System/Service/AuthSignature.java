@@ -32,7 +32,8 @@ public class AuthSignature {
     }
     @Value("${expired-time-refresh-token}")
     private long expiredRefreshToken;
-
+    @Value("${expired-time-access-token}")
+    private long expiredAccessToken;
     public ResponseEntity<?>verifySignature(VerifySignature verifySignature) throws SignatureException {
         Address address = addressService.findAddress(verifySignature.getAddress());
         if (Objects.isNull(address)) {
@@ -65,9 +66,10 @@ public class AuthSignature {
             String jwtRefreshToken = generateJWT.generateRefreshToken(verifySignature.getAddress());
             String jwtAccessToken = generateJWT.generateAccessToken(verifySignature.getAddress());
             addressService.verifiedAddress(address.getAddress(), newNonce, jwtRefreshToken);
-            ResponseCookie responseCookie = ResponseCookie.from("refreshToken", jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).build();
+            ResponseCookie responseRefresh = ResponseCookie.from("refreshToken", jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).build();
+            ResponseCookie responseAccess = ResponseCookie.from("accessToken", jwtAccessToken).maxAge(expiredAccessToken).httpOnly(true).build();
             VerifiedSignature verifiedSignature = new VerifiedSignature(address.getAddress(), jwtAccessToken, true, newNonce);
-            return ResponseEntity.status(200).header(HttpHeaders.SET_COOKIE, responseCookie.toString()).body(verifiedSignature);
+            return ResponseEntity.status(200).header(HttpHeaders.SET_COOKIE, responseRefresh.toString()).header(HttpHeaders.SET_COOKIE, responseAccess.toString()).body(verifiedSignature);
         }
         return ResponseEntity.badRequest().body("Error Action !!!");
     }

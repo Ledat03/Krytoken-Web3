@@ -7,7 +7,7 @@ export class Web3Service {
 
   constructor() {}
 
-  protected async initCreate() {
+  public async initCreate() {
     if (window.ethereum) {
       this.provider = new ethers.BrowserProvider(window.ethereum);
       this.signer = await this.provider.getSigner();
@@ -21,7 +21,7 @@ export class Web3Service {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-       
+
         if (accounts) {
           this.provider = new ethers.BrowserProvider(window.ethereum);
           this.signer = await this.provider.getSigner();

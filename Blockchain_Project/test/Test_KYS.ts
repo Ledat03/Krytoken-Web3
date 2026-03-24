@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 describe("test Token KYS", function () {
   let [accountA, accountB, accountC]: any = [];
@@ -41,7 +42,7 @@ describe("test Token KYS", function () {
   });
   describe("Test add to blacklist", () => {
     it("should revert transaction if sender on the blacklist", async () => {
-      const tx = await token.connect(accountA).transfer(accountB.address, amount);
+      await token.connect(accountA).transfer(accountB.address, amount);
       expect(await token.balanceOf(accountA.address)).to.be.equal(totalSupply - amount);
       expect(await token.balanceOf(accountB.address)).to.be.equal(amount);
       await token.connect(accountA).addToBlackList(accountB.address);
@@ -64,16 +65,16 @@ describe("test Token KYS", function () {
     });
   });
   describe("Test remove from blacklist", () => {
-    it("should work correcty", async () => {
+    it("should work correctly", async () => {
       await token.connect(accountA).transfer(accountB, amount);
       await token.connect(accountA).addToBlackList(accountB.address);
-      await expect(token.connect(accountB).transfer(accountC.address, amount)).to.be.reverted;
-      await token.connect(accountA).removeToBlackList(accountB.address);
+      await expect(token.connect(accountB).transfer(accountC.address, amount)).to.be.revertedWith("This address is on blacklist");
+      await token.connect(accountA).removeFromBlackList(accountB.address);
       await expect(token.connect(accountB).transfer(accountC.address, amount));
     });
     it("should revert if address isn't admin", async () => {
       await expect(token.connect(accountA).addToBlackList(accountC.address));
-      await expect(token.connect(accountB).removeToBlackList(accountC.address)).to.be.reverted;
+      await expect(token.connect(accountB).removeFromBlackList(accountC.address)).to.be.reverted;
     });
   });
   describe("Test ViewFunc", function () {

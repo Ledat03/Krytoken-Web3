@@ -5,13 +5,13 @@ import { useNFTContract } from "@/hooks/useNFTContract";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useEffect, useState } from "react";
 import NFTDetailDialog from "./common/Dialog";
-import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
+import type { IListOrder } from "@/redux/slice/sliceOrder";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { queryMarketInfo, queryOrderAdded, queryOrderMatched } from "@/service/QueryService";
 export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: string }) {
   const { getOwnerOf } = useNFTContract();
-  const OrderData: IListOrderAdded = useSelector((state: RootState) => state.orderAdded);
+  const OrderData: IListOrder = useSelector((state: RootState) => state.orderAdded);
   const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
   const {} = queryMarketInfo();
   const { OrderAddedStatus } = queryOrderAdded();

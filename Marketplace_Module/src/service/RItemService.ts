@@ -15,7 +15,6 @@ class NFTService extends Web3Service {
     return new ethers.Contract(NFTContract, ABI, this.signer);
   }
 
-  //Main Action
   async getNFTBalance(): Promise<number | null> {
     const contract = await this.getContractNFT();
     if (contract) {
@@ -116,7 +115,6 @@ class NFTService extends Web3Service {
     }
     return false;
   }
-  //View Function
 
   async getBalanceOf(address: string): Promise<number | null> {
     const resContract = await this.getContractNFT();

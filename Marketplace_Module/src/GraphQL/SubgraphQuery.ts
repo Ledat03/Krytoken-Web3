@@ -1,23 +1,23 @@
 import { gql, request } from "graphql-request";
 import type { NFTsData } from "@/redux/slice/sliceNFTs";
 import type { IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
-import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
+import type { IOrderAdded } from "@/redux/slice/sliceOrder";
 import type { IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import type { IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
 import type { IListSold } from "@/redux/slice/sliceLastestSold";
-const endPoint: string = "https://api.studio.thegraph.com/query/122785/subgraph-nft/version/latest";
+const endPoint: string = "https://api.studio.thegraph.com/query/122785/query-nf-ts/version/latest";
 const headers = { Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}` };
 
 interface Sales {
   type: string;
   tokenId: number;
   price: BigInt;
-  timestamp: number;
+  blockTimestamp: number;
   seller: string;
   buyer: string;
 }
 export interface ListSale {
-  sales: Sales[];
+  historyMatcheds: Sales[];
 }
 export const FetchListNFT = async (): Promise<NFTsData> => {
   try {
@@ -53,18 +53,16 @@ export const FetchOrderAdded = async () => {
   try {
     const fetchOrderAdded = gql`
       {
-        listings(where: { status: "active" }) {
+        listings {
           tokenId
-          status
-          soldAt
-          seller
           price
           orderId
-          buyer
+          isListing
+          owner
         }
       }
     `;
-    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrderAdded;
+    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IOrderAdded;
   } catch (error) {
     throw error;
   }
@@ -107,19 +105,22 @@ export const FetchOrderMatched = async () => {
 export const FetchSoldHistory = async (tokenId: string) => {
   try {
     const fetchSoldHistory = gql`
-      query GetSales($tokenId: BigInt!) {
-        sales(where: { tokenId: $tokenId }, orderBy: timestamp, orderDirection: desc) {
+      query historyMatcheds($tokenId: BigInt!) {
+        historyMatcheds(where: { tokenId: $tokenId }) {
+          id
           type
           tokenId
           price
-          timestamp
+          blockTimestamp
           seller
           buyer
+          transactionHash
+          blockNumber
         }
       }
     `;
     const variables = {
-      tokenId: tokenId.toString(), // ← vẫn để string vì GraphQL sẽ tự convert
+      tokenId: tokenId.toString(),
     };
     return (await request(endPoint, fetchSoldHistory, variables, headers)) as ListSale;
   } catch (error) {

@@ -12,7 +12,7 @@ import { HiOutlineSortDescending } from "react-icons/hi";
 import { ethers } from "ethers";
 import { MdOutlineCancel } from "react-icons/md";
 import { FetchSoldHistory, type ListSale } from "@/GraphQL/SubgraphQuery";
-import type { IListOrderAdded } from "@/redux/slice/sliceOrder";
+import type { IListOrder } from "@/redux/slice/sliceOrder";
 4;
 import { FormatTime } from "@/utils/common";
 import { LoadingLayout } from "./Loading";
@@ -25,14 +25,14 @@ interface NFTDetailDialogProps {
   onClose: () => void;
   signer: string;
   feeRate: any;
-  ListOrder: IListOrderAdded;
+  ListOrder: IListOrder;
   Load: () => void;
   latestSold: string | undefined;
 }
 interface MatchedNFT {
   owner: string;
   price: string;
-  status: string;
+  status: boolean;
 }
 export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder, latestSold, Load }: NFTDetailDialogProps) {
   const { connectMarket, createOffer, getOffers, acceptOffer, executeOrder, cancelOffer, addOrder, cancelOrder } = useMarketContract();
@@ -48,11 +48,12 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     ownerAddress: "",
   });
   const [History, setHistory] = useState<ListSale>();
+  console.log(History);
   const isOwner = useMemo(() => {
     const map = new Map<string, MatchedNFT>();
     ListOrder.listings?.forEach((item) => {
       const formatPrice = ethers.formatUnits(item.price.toString());
-      map.set(item.tokenId.toString(), { owner: item.seller, price: formatPrice, status: item.status });
+      map.set(item.tokenId.toString(), { owner: item.owner, price: formatPrice, status: item.isListing });
     });
     return map;
   }, [ListOrder.listings]);
@@ -80,6 +81,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       }
     }
   };
+  if (nft) console.log(ListOrder, isOwner.get(nft.tokenId.toString()), " ", signer.toLowerCase());
   const loadData = async () => {
     setLoading(true);
     try {
@@ -166,7 +168,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
           loading: "Creating offer...",
           success: "Offer created successfully!,You need to wait for the transaction to be done",
           error: "Error creating offer",
-        }
+        },
       );
     } catch (error) {
       throw error;
@@ -312,7 +314,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                     <p className="text-lg font-semibold text-foreground">Cookie Exclusive Collection</p>
                   </div>
                   <div className="space-y-3 rounded-lg border border-border bg-background p-4">
-                    {isOwner.get(nft.tokenId.toString())?.status === "active" ? (
+                    {isOwner.get(nft.tokenId.toString())?.status ? (
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Current Price</span>
                         <span className="text-xl font-bold text-primary">{isOwner.get(nft?.tokenId.toString())?.price} KYS</span>
@@ -569,9 +571,9 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                   </div>
                   <DropdownComponent isOpen={show.showHistory}>
                     <div className="text-white">
-                      {History !== undefined && History.sales.length > 0 ? (
+                      {History !== undefined && History.historyMatcheds.length > 0 ? (
                         <ul className="flex flex-col gap-3 w-full min-h-[300px]">
-                          {History.sales.map((item, index: any) => {
+                          {History.historyMatcheds.map((item, index: any) => {
                             if (item.type == "sale") {
                               return (
                                 <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
@@ -598,7 +600,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
                                     <span className=" text-[12px]">Transaction Time</span>
-                                    <p className=" text-[14px]">{FormatTime(item.timestamp)}</p>
+                                    <p className=" text-[14px]">{FormatTime(item.blockTimestamp)}</p>
                                   </div>
                                 </li>
                               );
@@ -628,7 +630,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
                                     <span className=" text-[12px]">Transaction Time</span>
-                                    <p className=" text-[14px]">{FormatTime(item.timestamp)}</p>
+                                    <p className=" text-[14px]">{FormatTime(item.blockTimestamp)}</p>
                                   </div>
                                 </li>
                               );

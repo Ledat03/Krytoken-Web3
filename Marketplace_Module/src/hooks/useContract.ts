@@ -61,7 +61,6 @@ export const useContract = () => {
             token.balance = balance;
           }
         }
-
         return tokenList;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading token balances");
@@ -69,7 +68,7 @@ export const useContract = () => {
         setLoading(false);
       }
     },
-    [account]
+    [account],
   );
 
   const transferTokens = useCallback(
@@ -92,7 +91,7 @@ export const useContract = () => {
         setLoading(false);
       }
     },
-    [loadTokenBalances]
+    [loadTokenBalances],
   );
 
   const getSignature = useCallback(async (nonce: string, address: JsonRpcSigner) => {
@@ -107,7 +106,18 @@ export const useContract = () => {
       setLoading(false);
     }
   }, []);
-
+  const checkBalance = useCallback(async (adr: string) => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const balance = await contractService.getTokenBalance(adr);
+      return balance;
+    } catch (err) {
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   const approveTokens = useCallback(async (spender: string, amount: string) => {
     setLoading(true);
     setError(undefined);
@@ -176,6 +186,7 @@ export const useContract = () => {
     transferTokens,
     approveTokens,
     loadTokenBalances,
+    checkBalance,
     clearError: () => setError(undefined),
   };
 };

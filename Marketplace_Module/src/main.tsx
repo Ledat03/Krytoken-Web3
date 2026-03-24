@@ -12,6 +12,7 @@ import NFTManager from "./component/ManageNFT.tsx";
 import MarketplaceSettings from "./component/HomePage/Feature/MarketSetting.tsx";
 import WelcomePage from "./component/Welcome.tsx";
 import Setting from "./component/HomePage/Feature/Setting.tsx";
+import BuyToken from "./component/HomePage/Feature/BuyToken.tsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -31,10 +32,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/home/nft/manage" element={<NFTManager />} />
             <Route path="/home/nft/new" element={<CreateNFT />} />
             <Route path="/home/setting" element={<Setting />} />
+            <Route path="/home/buy_token" element={<BuyToken />} />
           </Route>
           <Route path="/market/configuration" element={<MarketplaceSettings />} />
         </Routes>
       </BrowserRouter>
     </Provider>
-  </QueryClientProvider>
+  </QueryClientProvider>,
 );

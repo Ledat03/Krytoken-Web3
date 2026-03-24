@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 describe("test RItem721", () => {
   let [accountA, accountB, accountC]: any = [];

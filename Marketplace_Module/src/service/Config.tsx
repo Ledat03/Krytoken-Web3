@@ -2,16 +2,14 @@ import axios from "axios";
 import { renewRefreshToken, logOut } from "./MainService";
 import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "@/redux/store";
 const API_Base = axios.create({
   baseURL: "http://localhost:8080/",
   withCredentials: true,
 });
-
 API_Base.interceptors.request.use((config) => {
   const url = config.url || "";
-  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/refresh_token");
+  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/log_out") || url.startsWith("/api/user/refresh_token");
+  console.log(isPublic);
   if (isPublic) {
     if (config.headers) delete (config.headers as any).Authorization;
   } else {
@@ -27,7 +25,6 @@ API_Base.interceptors.response.use(
     return response;
   },
   async (error) => {
-    const dispatch = useDispatch<AppDispatch>();
     console.log("response Error : ", error);
     const status = error.response.status;
     const OriginalRequest = error.config;
@@ -46,23 +43,28 @@ API_Base.interceptors.response.use(
       }
     }
     if (status === 403) {
-      const res = await logOut();
-      localStorage.removeItem("accessToken");
-      console.log(res);
-      console.error("Your session is expired");
+      const { default: store } = await import("@/redux/store");
+      const adr = store.getState().Info.userAddress;
+      console.log("adr :", adr);
+      if (adr) {
+        const res = await logOut(adr);
+        localStorage.removeItem("accessToken");
+        console.log(res);
+        console.error("Your session is expired");
 
-      localStorage.removeItem("accessToken");
-      if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
-        window.ethereum.removeAllListeners("accountsChanged");
-        window.ethereum.removeAllListeners("chainChanged");
-        window.ethereum.removeAllListeners("disconnect");
+        localStorage.removeItem("accessToken");
+        if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
+          window.ethereum.removeAllListeners("accountsChanged");
+          window.ethereum.removeAllListeners("chainChanged");
+          window.ethereum.removeAllListeners("disconnect");
+        }
+        store.dispatch(unauthorizeUser());
+        toast.success("Wallet is disconnected", { duration: 2000 });
+        return Promise.reject(error);
       }
-      dispatch(unauthorizeUser());
-      toast.success("Wallet is disconnected", { duration: 2000 });
-      return Promise.reject(error);
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default API_Base;

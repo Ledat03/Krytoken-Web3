@@ -45,15 +45,31 @@ public class MainController {
 
     @PostMapping("/check_user/{address}")
     public ResponseEntity<?> checkUser(@PathVariable String address, HttpServletRequest httpServletRequest) throws Exception {
-            Address fetchAddress = addressService.findAddress(address);
-        if (fetchAddress != null && fetchAddress.isVerified() == true && fetchAddress.getRefreshToken() != null) {
-            return refreshToken(httpServletRequest);
-
+        Address fetchAddress = addressService.findAddress(address);
+        if(fetchAddress != null){
+            Cookie[] cookies = httpServletRequest.getCookies();
+            String refreshToken = "";
+            for(Cookie cookie :cookies){
+                if(cookie.getName().equals("refreshToken")){
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+            if (!refreshToken.isBlank() && fetchAddress.isVerified() && fetchAddress.getRefreshToken() != null && fetchAddress.getRefreshToken().equals(refreshToken)) {
+                return refreshToken(httpServletRequest);
+            }
+            if(refreshToken.isBlank() && fetchAddress.isVerified() && fetchAddress.getRefreshToken() != null){
+                return ResponseEntity.status(403).body("Your token has expired !");
+            }
         }
         long nonce = new SecureRandom().nextLong(999999);
-        Address Info = addressService.saveAddress(address, nonce);
+        Address newAddress = new Address();
+        newAddress.setAddress(address);
+        newAddress.setVerified(false);
+        newAddress.setNonce(nonce);
+        addressService.saveAddress(newAddress);
         addressService.savePermission(address, 0, false);
-        return ResponseEntity.status(201).body(Info);
+        return ResponseEntity.status(201).body(newAddress);
 
     }
 
@@ -62,29 +78,33 @@ public class MainController {
         return authSignature.verifySignature(verifySignature);
     }
 
-    @PostMapping("/user/log_out")
-    public ResponseEntity<?> logOut(HttpServletRequest httpServletRequest) throws Exception {
+    @PostMapping("/user/log_out/{adr}")
+    public ResponseEntity<?> logOut(HttpServletRequest httpServletRequest , @PathVariable String adr) throws Exception {
         Cookie[] cookies = httpServletRequest.getCookies();
-        if (cookies == null) {
-            return ResponseEntity.status(401).body("Unauthenticated !!");
+        String refreshToken = "";
+        Address fetchAddress = addressService.findAddress(adr);
+        for(Cookie cookie :cookies){
+            if(cookie.getName().equals("refreshToken")){
+                System.out.println("refreshToken : " + cookie.getName());
+                refreshToken = cookie.getName();
+                break;
+            }
         }
-        Jwt jwt = jwtDecoder.decode(Arrays.stream(cookies).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse(null));
-        String address = jwt.getSubject();
-        Address fetchAddress = addressService.findAddress(address);
         fetchAddress.setVerified(false);
         fetchAddress.setRefreshToken(null);
-        addressService.saveAddress(address, fetchAddress.getNonce());
-        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Logout successfully !!");
+        addressService.saveAddress(fetchAddress);
+        if(!refreshToken.isBlank()){
+            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Logout successfully !!");
+        }else{
+            return ResponseEntity.ok().body("Logout successfully !!");
+        }
     }
 
     @PostMapping("/user/refresh_token")
     public ResponseEntity<?> refreshToken(HttpServletRequest request) throws Exception {
         Instant instant = Instant.now();
         Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return ResponseEntity.status(403).body("Unauthenticated !!");
-        }
         String refreshToken = Arrays.stream(cookies).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse(null);
         if (refreshToken == null) {
             return ResponseEntity.status(403).body("Unauthenticated !!");
@@ -96,7 +116,7 @@ public class MainController {
             fetchAddress.setRefreshToken(null);
             addressService.updateAddress(fetchAddress);
             ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Your refresh token is expired, please login again !!");
+            return ResponseEntity.status(403).header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Your refresh token is expired, please login again !!");
         }
         if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isAfter(instant)) {
             Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
@@ -104,7 +124,7 @@ public class MainController {
             fetchAddress.setNonce(random);
             String newAccessToken = generateJWT.generateAccessToken(jwtInfo.getSubject());
             VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true, random);
-            addressService.saveAddress(fetchAddress.getAddress(), random);
+            addressService.saveAddress(fetchAddress);
             return ResponseEntity.ok().body(verifiedSignature);
         }
         return ResponseEntity.status(403).body("Unauthenticated !!");

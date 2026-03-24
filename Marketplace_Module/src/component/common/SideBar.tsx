@@ -1,4 +1,4 @@
-import { Home, Settings, BookText } from "lucide-react";
+import { Home, Settings, BookText, BadgeDollarSign } from "lucide-react";
 import { Sidebar, SidebarContent as UISidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import Logo from "../../../public/background/Gingerbrave.webp";
 const SidebarContent = () => {
@@ -27,6 +27,11 @@ const SidebarContent = () => {
       title: "Contract Information",
       url: "/home/feature/contact_info",
       icon: BookText,
+    },
+    {
+      title: "Buy Token",
+      url: "/home/buy_token",
+      icon: BadgeDollarSign,
     },
   ];
 

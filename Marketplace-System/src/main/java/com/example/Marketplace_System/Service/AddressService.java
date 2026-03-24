@@ -19,17 +19,9 @@ public class AddressService {
     public Address findAddress(String address){
         return addressRepository.findByAddress(address);
     }
-    public Address saveAddress(String address, long nonce){
-        Address existAddress = addressRepository.findByAddress(address);
-        if(existAddress != null){
-            existAddress.setNonce(nonce);
-            return addressRepository.save(existAddress);
-        }else{
-            Address newAddress = new Address();
-            newAddress.setAddress(address);
-            newAddress.setNonce(nonce);
-            return addressRepository.save(newAddress);
-        }
+    public Address saveAddress(Address address){
+        return addressRepository.save(address);
+
     }
     public Address updateAddress(Address address){
         return addressRepository.save(address);

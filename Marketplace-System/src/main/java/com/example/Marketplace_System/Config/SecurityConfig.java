@@ -51,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain configSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(d -> d.disable())
-                .authorizeHttpRequests(authorRequest -> authorRequest.requestMatchers("/api/verify_signature", "/api/check_user/**", "/api/user/refresh_token", "/api/user/log_out").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(authorRequest -> authorRequest.requestMatchers("/api/verify_signature", "/api/check_user/**", "/api/user/**").permitAll().anyRequest().authenticated())
                 .formLogin(form -> form.disable())
                 .cors(configurer -> configurer.configurationSource(request -> {
             CorsConfiguration corsConfiguration = new CorsConfiguration();
