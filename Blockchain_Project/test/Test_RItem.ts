@@ -46,7 +46,7 @@ describe("test RItem721", () => {
     });
     it("should work correctly", async () => {
       await RItem.connect(accountA).mintWithURI(accountA.address, CidNFT);
-      await expect(RItem.connect(accountA).burn(1)).to.emit(RItem, "Transfer").withArgs(accountA, address0, 1);
+      await expect(RItem.connect(accountA).burn(1)).to.emit(RItem, "NFTBurn").withArgs(1,accountA);
     });
   });
 });

@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import { marketService } from "@/service/MarketplaceService";
 import { ethers } from "ethers";
 import { useCallback } from "react";
@@ -105,7 +106,7 @@ export const useMarketContract = () => {
     try {
       const contract = await marketService.getMarketContract();
       if (contract) {
-        let amount = ethers.parseEther(String(price));
+        const amount = ethers.parseEther(String(price));
         const res = await marketService.createOffer(amount, transferToken, tokenId);
         return res;
       }

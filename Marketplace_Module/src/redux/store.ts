@@ -9,7 +9,7 @@ import orderCancel from "./slice/sliceCancelOffer";
 import orderMatched from "./slice/sliceMatchedOffer";
 import StatePermission from "./slice/slicePermission";
 import latestSoldData from "./slice/sliceLastestSold";
-const store = configureStore({ reducer: { identifyAddress: addressUser, Info: loadInfoUser, contractInfo: ContractInfo, InfoNFTs: StoreNFT, marketInfo: MarketInfo, orderAdded: orderAdded, cancelOrders: orderCancel, matchedOrders: orderMatched, Permission: StatePermission, LatestSoldData: latestSoldData }, devTools: true });
+const store = configureStore({ reducer: { identifyAddress: addressUser, Info: loadInfoUser, contractInfo: ContractInfo, InfoNFTs: StoreNFT, marketInfo: MarketInfo, orderAdded: orderAdded, cancelOrders: orderCancel, matchedOrders: orderMatched, Permission: StatePermission, LatestSoldData: latestSoldData }, devTools: import.meta.env.DEV });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

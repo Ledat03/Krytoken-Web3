@@ -1,7 +1,7 @@
 import TokenSale_ABI from "../../contracts/TokenSale/TokenSale.json";
 import { Web3Service } from "./Web3Service";
 import { ethers } from "ethers";
-let ABI = TokenSale_ABI.abi;
+const ABI = TokenSale_ABI.abi;
 const contract = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS;
 class TokenSaleService extends Web3Service {
   constructor() {
@@ -18,9 +18,15 @@ class TokenSaleService extends Web3Service {
     const contract = await this.getContract();
     if (contract != null) {
       try {
-        await contract.buy({ value: ethers.parseEther(amount) });
+        const tx = await contract.buy({ value: ethers.parseEther(amount) });
+        const result = await tx.wait();
+        if (result && result.status === 1) {
+          return true;
+        }
+        return false;
       } catch (error) {
         console.error(error);
+        return false;
       }
     }
   }
@@ -28,9 +34,15 @@ class TokenSaleService extends Web3Service {
     const contract = await this.getContract();
     if (contract != null) {
       try {
-        await contract.sell(ethers.parseEther(amount));
+        const tx = await contract.sell(ethers.parseEther(amount));
+        const result = await tx.wait();
+        if (result && result.status === 1) {
+          return true;
+        }
+        return false;
       } catch (error) {
         console.error(error);
+        return false;
       }
     }
   }

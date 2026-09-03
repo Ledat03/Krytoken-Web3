@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Route, Routes, BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import { Provider } from "react-redux";
@@ -13,6 +14,7 @@ import MarketplaceSettings from "./component/HomePage/Feature/MarketSetting.tsx"
 import WelcomePage from "./component/Welcome.tsx";
 import Setting from "./component/HomePage/Feature/Setting.tsx";
 import BuyToken from "./component/HomePage/Feature/BuyToken.tsx";
+import NotFound from "./component/NotFound.tsx";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -35,8 +37,10 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/home/buy_token" element={<BuyToken />} />
           </Route>
           <Route path="/market/configuration" element={<MarketplaceSettings />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </Provider>
+    <ReactQueryDevtools initialIsOpen = {false}/>
   </QueryClientProvider>,
 );

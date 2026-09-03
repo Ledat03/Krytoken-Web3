@@ -77,6 +77,16 @@ describe("test Token KYS", function () {
       await expect(token.connect(accountB).removeFromBlackList(accountC.address)).to.be.reverted;
     });
   });
+  describe("Test Burn Token", function () {
+    it("should work correctly ", async function () {
+      await token.connect(accountA).burn(1000);
+      expect(await token.totalBurned()).to.be.equal(1000);
+    });
+     it("should revert if amount is 0 ", async function () {
+     await expect( token.connect(accountA).burn(0)).to.be.revertedWith("Amount must greater than 0 !");
+    });
+    
+  });
   describe("Test ViewFunc", function () {
     it("Return correct total supply", async function () {
       expect(await token.totalSupply()).to.be.equal(totalSupply);

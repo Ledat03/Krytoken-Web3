@@ -58,7 +58,7 @@ public class AuthSignature {
         System.out.println("Raw message: " + new String(messageBytes, StandardCharsets.UTF_8));
         System.out.println("Signature: " + verifySignature.getSignature());
         String recoveredAddress = "0x" + Keys.getAddress(publicKey);
-        Boolean isCorrect = Objects.equals(address.getAddress().toLowerCase(), recoveredAddress);
+        boolean isCorrect = Objects.equals(address.getAddress().toLowerCase(), recoveredAddress);
         if (isCorrect) {
             Instant instant = Instant.now();
             long newNonce = new SecureRandom().nextLong(999999);

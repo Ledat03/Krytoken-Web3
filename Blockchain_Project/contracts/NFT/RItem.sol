@@ -9,8 +9,8 @@ contract RItem is ERC721, Ownable, ERC721URIStorage {
     uint256 private _tokenId = 0;
     string private baseURI;
 
-    event NFTBurn(uint256 indexed tokenId, address indexed owner, address voidAddress);
-
+    event NFTBurn(uint256 indexed tokenId, address indexed owner);
+    
     constructor() ERC721("Cookies Exclusive", "CE") Ownable(msg.sender) {}
 
     function mintWithURI(address to, string memory _uri) public onlyOwner returns (uint256 id) {
@@ -39,7 +39,7 @@ contract RItem is ERC721, Ownable, ERC721URIStorage {
 
     function burn(uint256 tokenId) public onlyOwner {
         _burn(tokenId);
-        emit Transfer(msg.sender, address(0), tokenId);
+        emit NFTBurn(tokenId, msg.sender);
     }
 
     function supportsInterface(bytes4 interfaceId)

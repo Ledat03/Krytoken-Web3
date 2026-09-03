@@ -3,30 +3,25 @@ import { renewRefreshToken, logOut } from "./MainService";
 import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
 import { toast } from "sonner";
 const API_Base = axios.create({
-  baseURL: "http://localhost:8080/",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true,
 });
 API_Base.interceptors.request.use((config) => {
   const url = config.url || "";
-  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/log_out") || url.startsWith("/api/user/refresh_token");
-  console.log(isPublic);
-  if (isPublic) {
-    if (config.headers) delete (config.headers as any).Authorization;
-  } else {
+  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/refresh_token");
+  if (!isPublic) {
     const token = localStorage.getItem("accessToken");
     if (token && config.headers) (config.headers as any).Authorization = `Bearer ${token}`;
+  } else {
+    if (config.headers) delete (config.headers as any).Authorization;
   }
   return config;
 });
 
 API_Base.interceptors.response.use(
-  (response) => {
-    console.log("Response success:", response);
-    return response;
-  },
+  (response) => response,
   async (error) => {
-    console.log("response Error : ", error);
-    const status = error.response.status;
+    const status = error.response?.status;
     const OriginalRequest = error.config;
     if (status === 401) {
       if (!OriginalRequest._retry && !OriginalRequest.url?.includes("refresh_token")) {
@@ -34,7 +29,6 @@ API_Base.interceptors.response.use(
           OriginalRequest._retry = true;
           const renewAccessToken = await renewRefreshToken();
           localStorage.setItem("accessToken", renewAccessToken.data.accessToken);
-          console.log(OriginalRequest);
           OriginalRequest.headers.Authorization = `Bearer ${renewAccessToken.data.accessToken}`;
           return API_Base.request(OriginalRequest);
         } catch (refreshError) {
@@ -45,13 +39,8 @@ API_Base.interceptors.response.use(
     if (status === 403) {
       const { default: store } = await import("@/redux/store");
       const adr = store.getState().Info.userAddress;
-      console.log("adr :", adr);
       if (adr) {
-        const res = await logOut(adr);
-        localStorage.removeItem("accessToken");
-        console.log(res);
-        console.error("Your session is expired");
-
+        await logOut(adr);
         localStorage.removeItem("accessToken");
         if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
           window.ethereum.removeAllListeners("accountsChanged");

@@ -10,7 +10,7 @@ const UploadPinata = () => {
     if (!file) return false;
     try {
       setUploadStatus("Pending");
-      let formData: FormData = new FormData();
+      const formData: FormData = new FormData();
       formData.append("file", file);
       formData.append("network", "public");
       formData.append("group_id", "a420f5c1-57bd-409b-9c0b-6b55c4e748f3");
@@ -32,10 +32,10 @@ const UploadPinata = () => {
   const handleUploadJson = async (metadata: INFT, name: string) => {
     try {
       if (metadata) {
-        let blob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
-        let file = new File([blob], `${name}.json`, { type: "application/json" });
+        const blob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
+        const file = new File([blob], `${name}.json`, { type: "application/json" });
         setUploadStatus("Pending");
-        let formData: FormData = new FormData();
+        const formData: FormData = new FormData();
         formData.append("file", file);
         formData.append("network", "public");
         formData.append("group_id", "1c568344-c460-4628-8792-bcdbc6ea55c7");

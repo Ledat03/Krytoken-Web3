@@ -2,8 +2,8 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { updatePermission, getPermission } from "@/service/MainService";
 export interface Permission {
   address: string;
-  tokenAlowance: number;
-  nftAlowanceAll: boolean;
+  tokenAllowance: number;
+  nftAllowanceAll: boolean;
 }
 
 export interface PermissionState {
@@ -18,7 +18,7 @@ const initialState: PermissionState = {
 };
 export const savePermission = createAsyncThunk("/save/permission", async (permission: Permission) => {
   if (permission == null) {
-    console.log("first")
+    console.log("first");
     return;
   }
   try {

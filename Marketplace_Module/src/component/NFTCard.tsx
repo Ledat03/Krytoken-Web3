@@ -4,18 +4,19 @@ import images from "@/utils/imageCustom";
 import { useNFTContract } from "@/hooks/useNFTContract";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useEffect, useState } from "react";
+import { formatBalance } from "@/utils/common";
 import NFTDetailDialog from "./common/Dialog";
-import type { IListOrder } from "@/redux/slice/sliceOrder";
+import type { IListOrder,IOrderAdded } from "@/redux/slice/sliceOrder";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
-import { queryMarketInfo, queryOrderAdded, queryOrderMatched } from "@/service/QueryService";
-export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: string }) {
+import { useQueryMarketInfo, useQueryOrderAdded, useQueryOrderMatched } from "@/service/QueryService";
+export default function NFTCard({ nft, signer,listed}: { nft: NFTProperty; signer: string , listed:IOrderAdded | undefined}) {
   const { getOwnerOf } = useNFTContract();
   const OrderData: IListOrder = useSelector((state: RootState) => state.orderAdded);
   const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
-  const {} = queryMarketInfo();
-  const { OrderAddedStatus } = queryOrderAdded();
-  const { StatusMatched } = queryOrderMatched();
+  const {} = useQueryMarketInfo();
+  const { OrderAddedStatus } = useQueryOrderAdded();
+  const { StatusMatched } = useQueryOrderMatched();
   useEffect(() => {
     fetchOwner(nft.tokenId);
   }, [OrderAddedStatus, StatusMatched]);
@@ -32,8 +33,8 @@ export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: str
     const res = await getOwnerOf(tokenId);
     if (res) setOwner(res);
   };
-  console.log(formSale);
-  if (owner === signer) {
+console.log(listed)
+  if (owner === signer ||  listed?.owner.toLowerCase() === signer.toLowerCase()) {
     return (
       <>
         <Card
@@ -56,7 +57,7 @@ export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: str
           <CardFooter className="flex flex-col items-start justify-around gap-3 px-3 py-auto h-full">
             <div className="w-full flex justify-between items-start">
               <div>
-                <h3 className="font-semibold text-foreground text-[15px] mb-1 text-balance">{nft.name}</h3>
+                <h3 className="font-semibold text-foreground text-[15px] mb-1 text-balance cookie-text">{nft.name}</h3>
                 <p className="text-xs text-muted-foreground">Token ID: #{nft.tokenId.toString().padStart(4, "0")}</p>
                 <p className="text-xs text-muted-foreground">
                   Owner: {owner.substring(0, 4)}...{owner.substring(owner.length, owner.length - 4)}
@@ -66,17 +67,15 @@ export default function NFTCard({ nft, signer }: { nft: NFTProperty; signer: str
                 <img src={images[nft.trait.rarity]} alt="" className="w-[100px]" />
               </div>
             </div>
-
-            <div className="w-full flex items-center justify-between pt-2 border-t border-border">
+            {
+             listed != undefined ? <div className="w-full flex items-center justify-between pt-2 border-t border-border">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Giá hiện tại</p>
-                <p className="font-bold text-primary text-lg">10000</p>
+                <p className="text-xs text-muted-foreground mb-1">Current Price</p>
+                <p className="font-bold text-primary text-lg cookie-text">{formatBalance(listed.price.toString())} KYS</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground mb-1">USD</p>
-                <p className="font-semibold text-foreground">2000</p>
-              </div>
-            </div>
+            </div> : <div className="text-2xl cookie-text">Not Listed</div>
+            }
+           
 
             <span className=" self-center text-muted-foreground text-[14px] opacity-0 group-hover:opacity-100">Click to see more detail </span>
           </CardFooter>

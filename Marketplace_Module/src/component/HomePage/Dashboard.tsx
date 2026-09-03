@@ -1,66 +1,112 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, Search, Sliders } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUpDown, Sliders } from "lucide-react";
 import NFTDetailDialog from "../common/Dialog";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import type { NFTProperty } from "@/redux/slice/sliceNFTs";
-import { queryOrderAdded, useListNFTs, queryOrderMatched, queryLatestSoldData } from "@/service/QueryService";
-import images from "@/utils/imageCustom";
-import { FaArrowRight } from "react-icons/fa";
-import { Input } from "@/components/ui/input";
-import { GoDotFill } from "react-icons/go";
-import { queryMarketInfo } from "@/service/QueryService";
+import { useQueryOrderAdded, useQueryOrderMatched, useQueryLatestSoldData, useQueryMarketInfo } from "@/service/QueryService";
 import type { IListOrder } from "@/redux/slice/sliceOrder";
 import { LoadingLayout } from "../common/Loading";
 import { ethers } from "ethers";
 import { formatBalance } from "@/utils/common";
-import { Button } from "@/components/ui/button";
-const collections = ["Charge", "Ambush", "Support", "Defense", "Ranged", "Magic", "Healing", "Bomber"];
-const rarities = ["Common", "Rare", "Epic", "Super_Epic", "Special", "Dragon", "Legendary", "Ancient", "Beast"];
-const element = ["Ice", "Darkness", "Earth", "Electricity", "Fire", "Grass", "Light", "Poison", "Steel", "Wind"];
+import { useInfiniteNFTs } from "@/hooks/useInfiniteNFTs";
+import poster from "../../../public/background/poster-1.jpg";
+import poster1 from "../../../public/background/poster-2.jpg";
+import poster2 from "../../../public/background/poster-3.jpg";
+import FilterPanel from "./FilterPanel";
+import NFTGrid from "./NFTGrid";
+
+type SortOption = "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc" | "listed";
+
+interface InfoListing {
+  isActive: boolean;
+  price: string;
+}
+
+const posters = [poster, poster1, poster2];
+
 export default function Dashboard() {
-  const { LoadingData, refetchListNFT } = useListNFTs();
-  const { LoadingInfo, refetchMarketInfo } = queryMarketInfo();
-  const { OrderAddedLoading, refetchOrderAdded } = queryOrderAdded();
-  const { LoadingMatched, refetchOrderMatched } = queryOrderMatched();
-  const { LatestSoldLoading, refetchLatestSold } = queryLatestSoldData();
+  const { ListNFTs, NFTstatus, hasMore, loadMore, reset, isFetching } = useInfiniteNFTs();
+  const { LoadingInfo, refetchMarketInfo } = useQueryMarketInfo();
+  const { OrderAddedLoading, refetchOrderAdded } = useQueryOrderAdded();
+  const { LoadingMatched, refetchOrderMatched } = useQueryOrderMatched();
+  const { LatestSoldLoading, refetchLatestSold } = useQueryLatestSoldData();
+
   const onLoad = () => {
-    refetchListNFT();
+    reset();
     refetchMarketInfo();
     refetchOrderAdded();
     refetchOrderMatched();
     refetchLatestSold();
   };
-  const isLoading = LoadingData || LoadingInfo || OrderAddedLoading || LoadingMatched || LatestSoldLoading;
-  console.log(isLoading);
+
+  const isInitialLoading = (NFTstatus === "pending" && ListNFTs.length === 0) || LoadingInfo || OrderAddedLoading || LoadingMatched || LatestSoldLoading;
+  const isLoadingMore = NFTstatus === "pending" && ListNFTs.length > 0;
+
   const OrderData: IListOrder = useSelector((state: RootState) => state.orderAdded);
+  const signer = useSelector((state: RootState) => state.Info.userAddress);
+  const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
+  const latestSold = useSelector((state: RootState) => state.LatestSoldData.latestSold);
+
   const [selectedClass, setSelectedClass] = useState<string[]>([]);
   const [selectedRarity, setSelectedRarity] = useState<string[]>([]);
   const [selectedElement, setSelectedElement] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 5]);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 999999]);
   const [filter, setFilter] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFilters, setExpandedFilters] = useState<string[]>([]);
   const [selectedNFT, setSelectedNFT] = useState<NFTProperty | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const NFTs: NFTProperty[] = useSelector((state: RootState) => state.InfoNFTs.ListNFTs);
-  const signer = useSelector((state: RootState) => state.Info.userAddress);
-  const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
-  const latestSold = useSelector((state: RootState) => state.LatestSoldData.latestSold);
-  interface InfoListing {
-    isActive: boolean;
-    price: string;
-  }
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [sortBy, setSortBy] = useState<SortOption>("default");
 
-  const toggleFilter = (filter: string) => {
-    setExpandedFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]));
+  const slideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+  const startAutoPlay = () => {
+    slideIntervalRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % posters.length);
+    }, 3500);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+    if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+    startAutoPlay();
+  };
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => {
+      if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isInitialLoading) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isFetching) {
+          loadMore();
+        }
+      },
+      { threshold: 0.9 },
+    );
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+    return () => observer.disconnect();
+  }, [hasMore, isFetching, loadMore, isInitialLoading]);
+
+  const toggleFilter = (f: string) => {
+    setExpandedFilters((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   };
 
   const openNFTDetail = (nft: NFTProperty) => {
     setSelectedNFT(nft);
     setIsDialogOpen(true);
   };
-  console.log(latestSold);
+
   const mapOfNFT = useMemo(() => {
     const map = new Map<string, InfoListing>();
     OrderData.listings?.forEach((item) => {
@@ -69,6 +115,7 @@ export default function Dashboard() {
     });
     return map;
   }, [OrderData.listings]);
+
   const mapOfLatestSold = useMemo(() => {
     const map = new Map<number, string | undefined>();
     latestSold?.forEach((item) => {
@@ -76,202 +123,158 @@ export default function Dashboard() {
     });
     return map;
   }, [latestSold]);
-  const filteredNFTs = NFTs.filter((nft) => {
-    const collectionMatch = selectedClass.length > 0 ? selectedClass.includes(nft.trait.class) : nft;
-    const rarityMatch = selectedRarity.length > 0 ? selectedRarity.includes(nft.trait.rarity) : nft;
-    const elementMatch = selectedElement.length > 0 ? selectedElement.includes(nft.trait.element) : nft;
 
-    const searchMatch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return collectionMatch && rarityMatch && elementMatch && searchMatch;
-  });
-  const toggleValue = (filter: string[], value: string) => {
-    return filter.includes(value) ? filter.filter((v) => v !== value) : [...filter, value];
-  };
-  return isLoading ? (
+  const maxPrice = useMemo(() => {
+    let max = 0;
+    mapOfNFT.forEach((val) => {
+      const p = Number(val.price);
+      if (p > max) max = p;
+    });
+    return max;
+  }, [mapOfNFT]);
+
+  const filteredSortedNFTs = useMemo(() => {
+    const filtered = ListNFTs.filter((nft) => {
+      const collectionMatch = selectedClass.length > 0 ? selectedClass.includes(nft.trait.class) : true;
+      const rarityMatch = selectedRarity.length > 0 ? selectedRarity.includes(nft.trait.rarity) : true;
+      const elementMatch = selectedElement.length > 0 ? selectedElement.includes(nft.trait.element) : true;
+      const searchMatch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const listing = mapOfNFT.get(nft.tokenId.toString());
+      const priceMatch = !listing?.isActive || (Number(listing.price) >= priceRange[0] && Number(listing.price) <= priceRange[1]);
+      return collectionMatch && rarityMatch && elementMatch && searchMatch && priceMatch;
+    });
+
+    if (sortBy === "default") return filtered;
+    return [...filtered].sort((a, b) => {
+      const aListing = mapOfNFT.get(a.tokenId.toString());
+      const bListing = mapOfNFT.get(b.tokenId.toString());
+      const aPrice = aListing?.isActive ? Number(aListing.price) : null;
+      const bPrice = bListing?.isActive ? Number(bListing.price) : null;
+
+      if (sortBy === "price-asc") {
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
+        return aPrice - bPrice;
+      }
+      if (sortBy === "price-desc") {
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
+        return bPrice - aPrice;
+      }
+      if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+      if (sortBy === "name-desc") return b.name.localeCompare(a.name);
+      if (sortBy === "listed") {
+        const aActive = aListing?.isActive ? 1 : 0;
+        const bActive = bListing?.isActive ? 1 : 0;
+        return bActive - aActive;
+      }
+      return 0;
+    });
+  }, [ListNFTs, selectedClass, selectedRarity, selectedElement, searchQuery, priceRange, sortBy, mapOfNFT]);
+
+  return isInitialLoading ? (
     <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-black">
-      <LoadingLayout Loading={isLoading} />
+      <LoadingLayout Loading={isInitialLoading} />
     </div>
   ) : (
-    <>
-      <div className="dark min-h-screen bg-background sm:w-[100%]">
-        <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-foreground">Cookie Exclusive Collection</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{filteredNFTs.length} NFTs available</span>
-              </div>
+    <div className="dark min-h-screen bg-background w-full">
+      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:py-5 sm:px-6 lg:px-8">
+          <div className="hidden sm:block relative overflow-hidden rounded-2xl select-none">
+            <div className="flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+              {posters.map((src, idx) => (
+                <img key={idx} src={src} alt={`Poster ${idx + 1}`} className="w-full flex-shrink-0 object-cover rounded-2xl sm:h-[160px] md:h-[220px] lg:h-auto" draggable={false} />
+              ))}
+            </div>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {posters.map((_, idx) => (
+                <button key={idx} onClick={() => goToSlide(idx)} className={`transition-all duration-300 rounded-full ${idx === currentSlide ? "bg-white w-4 h-4 scale-110 shadow-lg" : "bg-white/50 w-3 h-3 hover:bg-white/80"}`} aria-label={`Go to slide ${idx + 1}`} />
+              ))}
             </div>
           </div>
-        </header>
-        <div className=" lg:flex lg:relative sm:block justify-center">
-          <div className="1max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div>
-              <Button className="w-[255px] mb-5" onClick={() => setFilter(!filter)}>
-                Filter
-              </Button>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
+          <button
+            onClick={() => setFilter(!filter)}
+            title={filter ? "Hide filters" : "Show filters"}
+            className={`flex items-center justify-center overflow-hidden bg-primary text-primary-foreground border border-primary hover:bg-primary/90 active:scale-95 transition-all duration-300 ease-in-out ${filter ? "w-36 h-10 rounded-xl gap-2 px-4" : "w-10 h-10 rounded-full"}`}
+          >
+            <Sliders className="h-4 w-4 flex-shrink-0" />
+            <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${filter ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0"}`}>Filter</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="default">Default</option>
+              <option value="listed">Listed First</option>
+              <option value="price-asc">Price: Low → High</option>
+              <option value="price-desc">Price: High → Low</option>
+              <option value="name-asc">Name: A → Z</option>
+              <option value="name-desc">Name: Z → A</option>
+            </select>
+          </div>
+        </div>
+
+        <div
+          className="flex flex-col lg:grid items-start"
+          style={{
+            gridTemplateColumns: filter ? "256px 1fr" : "0px 1fr",
+            columnGap: filter ? "24px" : "0px",
+            transition: "grid-template-columns 300ms ease-in-out, column-gap 300ms ease-in-out",
+          }}
+        >
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out lg:max-h-none flex-shrink-0 w-full ${
+              filter ? "max-h-[2000px] opacity-100 pb-4 lg:pb-0" : "max-h-0 opacity-0 pointer-events-none"
+            }`}
+          >
+            <div className="w-64 sticky top-8">
+              <FilterPanel
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedClass={selectedClass}
+                onClassChange={setSelectedClass}
+                selectedRarity={selectedRarity}
+                onRarityChange={setSelectedRarity}
+                selectedElement={selectedElement}
+                onElementChange={setSelectedElement}
+                priceRange={priceRange}
+                onPriceRangeChange={setPriceRange}
+                maxPrice={maxPrice}
+                expandedFilters={expandedFilters}
+                onToggleFilter={toggleFilter}
+              />
             </div>
-            {filter && (
-              <div className="flex gap-8">
-                <aside className="w-64 flex-shrink-0">
-                  <div className="sticky top-8 space-y-6">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <input type="text" placeholder="Search NFTs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-4">
-                      <button onClick={() => toggleFilter("collection")} className="flex w-full items-center justify-between text-sm font-semibold text-foreground hover:text-primary">
-                        <span className="flex items-center gap-2">
-                          <Sliders className="h-4 w-4" />
-                          Class
-                        </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${expandedFilters.includes("collection") ? "rotate-180" : ""}`} />
-                      </button>
-                      {expandedFilters.includes("collection") && (
-                        <div className="mt-4 space-y-2">
-                          {collections.map((collection) => (
-                            <label key={collection} className="flex items-center gap-2 cursor-pointer">
-                              <Input
-                                type="checkbox"
-                                name="collection"
-                                value={collection}
-                                checked={selectedClass.includes(collection)}
-                                onChange={(e) => {
-                                  setSelectedClass((prev) => toggleValue(prev, e.target.value));
-                                }}
-                                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                              />
-                              <span className="text-sm text-foreground hover:text-primary">{collection}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="rounded-lg border border-border bg-card p-4">
-                      <button onClick={() => toggleFilter("rarity")} className="flex w-full items-center justify-between text-sm font-semibold text-foreground hover:text-primary">
-                        <span className="flex items-center gap-2">
-                          <Sliders className="h-4 w-4" />
-                          Rarity
-                        </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${expandedFilters.includes("rarity") ? "rotate-180" : ""}`} />
-                      </button>
-                      {expandedFilters.includes("rarity") && (
-                        <div className="mt-4 space-y-2">
-                          {rarities.map((rarity) => (
-                            <label key={rarity} className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" name="rarity" value={rarity} checked={selectedRarity.includes(rarity)} onChange={(e) => setSelectedRarity((prev) => toggleValue(prev, e.target.value))} className="h-4 w-4 my-2 rounded border-border text-primary focus:ring-primary" />
-
-                              <img src={images[rarity]} className="text-sm text-foreground hover:text-primary" />
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-border bg-card p-4">
-                      <button onClick={() => toggleFilter("element")} className="flex w-full items-center justify-between text-sm font-semibold text-foreground hover:text-primary">
-                        <span className="flex items-center gap-2">
-                          <Sliders className="h-4 w-4" />
-                          Element
-                        </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${expandedFilters.includes("rarity") ? "rotate-180" : ""}`} />
-                      </button>
-                      {expandedFilters.includes("element") && (
-                        <div className="mt-4 space-y-2">
-                          {element.map((elem) => (
-                            <label key={elem} className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" name="rarity" value={elem} checked={selectedElement.includes(elem)} onChange={(e) => setSelectedElement((prev) => toggleValue(prev, e.target.value))} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
-                              <img src={images[elem]} />
-                              <span>{elem}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </aside>
-              </div>
-            )}
           </div>
 
-          <main className=" w-full sm:w-[500px] lg:w-[1000px] mt-7">
-            {filteredNFTs.length > 0 ? (
-              <div
-                className="w-full grid grid-cols-1 gap-6 justify-items-stretch
-                  sm:grid-cols-2 sm:justify-items-center
-                  lg:grid-cols-3 xl:grid-cols-4"
-              >
-                {filteredNFTs.map((nft) => (
-                  <div
-                    key={nft.tokenId}
-                    onClick={() => openNFTDetail(nft)}
-                    className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20
-                  w-full max-w-sm sm:max-w-none"
-                  >
-                    <div className="relative h-50 w-full overflow-hidden bg-background">
-                      <img src={nft.image || "/placeholder.svg"} alt={nft.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 scale-90" />
-
-                      {mapOfNFT.get(nft.tokenId.toString())?.isActive && (
-                        <div className=" absolute left-2 top-2 text-[15px] text-green-400 flex items-center">
-                          <GoDotFill className="animate-pulse-live" />
-                          <span>Live</span>
-                        </div>
-                      )}
-
-                      <div className="absolute right-2 top-2">
-                        <img src={images[nft.trait.rarity]} alt="" />
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="font-semibold text-foreground line-clamp-1 cookie-text text-[18px]">{nft.name}</h3>
-                      <p className="text-xs text-muted-foreground">{}</p>
-                      <div className="mt-4 space-y-2 border-t border-border pt-4">
-                        {mapOfNFT.get(nft.tokenId.toString())?.isActive ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Price</span>
-                            <span className="font-semibold text-primary">{mapOfNFT.get(nft.tokenId.toString())?.price} KYS</span>
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <span className="text-muted-foreground">Not Listed</span>
-                          </div>
-                        )}
-                        <div>
-                          {latestSold
-                            .filter((item) => item.tokenId === nft.tokenId)
-                            .map((item) => {
-                              return (
-                                <div className="flex justify-between" key={item.tokenId}>
-                                  <span className="text-muted-foreground">Latest Sold</span>
-                                  <span className="font-semibold text-primary">{formatBalance(item.lastSalePrice.toString())} KYS</span>
-                                </div>
-                              );
-                            })}
-                        </div>
-                        <div className="flex opacity-0 group-hover:opacity-100 gap-2">
-                          <span className=" flex mx-auto items-center gap-1 text-muted-foreground text-[13px]">
-                            Click to see all detail <FaArrowRight />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-96 items-center justify-center rounded-lg border border-border bg-card">
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-foreground">No NFTs found</p>
-                  <p className="text-sm text-muted-foreground">Try adjusting your filters</p>
-                </div>
-              </div>
-            )}
+          <main className="min-w-0 w-full">
+            <NFTGrid
+              filteredNFTs={filteredSortedNFTs}
+              mapOfNFT={mapOfNFT}
+              latestSold={latestSold}
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              observerRef={observerRef}
+              onOpenNFTDetail={openNFTDetail}
+              totalCount={ListNFTs.length}
+            />
           </main>
         </div>
-        {isDialogOpen && selectedNFT && <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} latestSold={mapOfLatestSold.get(selectedNFT?.tokenId)} Load={onLoad} />}
       </div>
-    </>
+
+      {isDialogOpen && selectedNFT && (
+        <NFTDetailDialog nft={selectedNFT} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} signer={signer} feeRate={infoMarket} ListOrder={OrderData} latestSold={mapOfLatestSold.get(selectedNFT?.tokenId)} reload={onLoad} />
+      )}
+    </div>
   );
 }

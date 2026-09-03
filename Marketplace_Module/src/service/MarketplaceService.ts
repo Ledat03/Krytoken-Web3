@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import { ethers } from "ethers";
 import ABI_marketplace from "../../contracts/marketplace/Marketplace.sol/Marketplace.json";
 import { Web3Service } from "./Web3Service";
@@ -25,9 +26,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        console.log(this.signer, " ", this.provider);
-        await contract.updateFeeRate(feeByDecimal, feeRate);
-        return true;
+        const tx = await contract.updateFeeRate(feeByDecimal, feeRate);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -38,8 +39,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract._updateFeeRecipient(fee);
-        return true;
+        const tx = await contract._updateFeeRecipient(fee);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -51,7 +53,7 @@ class MarketplaceService extends Web3Service {
       const contract = await this.getMarketContract();
       if (contract) {
         const response: Promise<boolean> = await contract.isSeller(orderId, seller);
-        return response;
+        if (response) return response;
       }
       return false;
     } catch (error) {
@@ -62,8 +64,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.addNewToken(tokenAddress);
-        return true;
+        const tx = await contract.addNewToken(tokenAddress);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -75,7 +78,7 @@ class MarketplaceService extends Web3Service {
       const contract = await this.getMarketContract();
       if (contract) {
         const response: Promise<boolean> = await contract.isTokenSupported(tokenAddress);
-        return response;
+        if (response) return response;
       }
       return false;
     } catch (error) {
@@ -86,8 +89,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.addOrder(tokenId, price, tokenAddress);
-        return true;
+        const tx = await contract.addOrder(tokenId, price, tokenAddress);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -98,8 +102,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.cancelOffer(tokenId, index);
-        return true;
+        const tx = await contract.cancelOffer(tokenId, index);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -110,8 +115,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.acceptOffer(tokenId, index);
-        return true;
+        const tx = await contract.acceptOffer(tokenId, index);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -120,11 +126,12 @@ class MarketplaceService extends Web3Service {
   }
   async createOffer(price: BigInt, transferToken: string, tokenId: number) {
     try {
-      console.log(this.signer)
+      console.log(this.signer);
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.createOffer(price, transferToken, tokenId);
-        return true;
+        const tx = await contract.createOffer(price, transferToken, tokenId);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -135,8 +142,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.cancelOrder(orderId);
-        return true;
+        const tx = await contract.cancelOrder(orderId);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {
@@ -147,8 +155,9 @@ class MarketplaceService extends Web3Service {
     try {
       const contract = await this.getMarketContract();
       if (contract) {
-        await contract.executeOrder(orderId);
-        return true;
+        const tx = await contract.executeOrder(orderId);
+        const result = await tx.wait();
+        if (result) return true;
       }
       return false;
     } catch (error) {

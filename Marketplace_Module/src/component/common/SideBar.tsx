@@ -65,7 +65,7 @@ const SidebarContent = () => {
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span className="text-[18px] cookie-text">{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

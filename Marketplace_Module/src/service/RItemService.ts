@@ -39,29 +39,35 @@ class NFTService extends Web3Service {
     }
     return null;
   }
-  async mintWithURI(tokenURL: string, address: string): Promise<string | undefined> {
+  async mintWithURI(tokenURL: string, address: string): Promise<boolean | undefined> {
     const contract = await this.getContractNFT();
     const owner: string | null = await this.getOwner();
     console.log("owner ", owner);
     console.log("signer , ", address);
     if (contract && owner != null && address === owner) {
       try {
-        const tokenId = await contract.mintWithURI(address, tokenURL);
-        return tokenId;
+        const tx = await contract.mintWithURI(address, tokenURL);
+        const result = await tx.wait();
+        console.log(await result);
+        if (result) {
+          return true;
+        }
       } catch (e) {
-        throw e;
+        console.error(e);
+        return false;
       }
     }
-    return "Your contract is unavailable or signer is'n owner";
   }
   async updateBaseURI(newURI: string): Promise<boolean> {
     const resContract = await this.getContractNFT();
     if (resContract) {
       try {
-        await resContract._updateBaseURI(newURI);
-        return true;
+        const tx = await resContract._updateBaseURI(newURI);
+        const result = await tx.wait();
+        if (result.status == 1) return true;
       } catch (error) {
-        throw error;
+        console.error(error);
+        return false;
       }
     }
     return false;
@@ -82,10 +88,12 @@ class NFTService extends Web3Service {
     const resContract = await this.getContractNFT();
     if (resContract) {
       try {
-        await resContract.approve(address, tokenId);
-        return true;
+        const tx = await resContract.approve(address, tokenId);
+        const result = await tx.wait();
+        if (result.status == 1) return true;
       } catch (error) {
-        throw error;
+        console.error(error);
+        return false;
       }
     }
     return false;
@@ -94,10 +102,12 @@ class NFTService extends Web3Service {
     const resContract = await this.getContractNFT();
     if (resContract) {
       try {
-        await resContract.setApprovalForAll(address, isApproved);
-        return true;
+        const tx = await resContract.setApprovalForAll(address, isApproved);
+        const result = tx.wait();
+        if (result.status == 1) return true;
       } catch (error) {
-        throw error;
+        console.error(error);
+        return false;
       }
     }
     return false;
@@ -107,10 +117,12 @@ class NFTService extends Web3Service {
 
     if (resContract) {
       try {
-        await resContract.transferFrom(from, to, tokenId);
-        return true;
+        const tx = await resContract.transferFrom(from, to, tokenId);
+        const result = tx.wait();
+        if (result.status == 1) return true;
       } catch (error) {
-        throw error;
+        console.error(error);
+        return false;
       }
     }
     return false;

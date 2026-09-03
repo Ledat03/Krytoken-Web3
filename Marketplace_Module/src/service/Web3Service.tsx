@@ -1,4 +1,3 @@
-// Web3Service.ts
 import { ethers } from "ethers";
 
 export class Web3Service {
@@ -16,7 +15,6 @@ export class Web3Service {
     }
   }
   public async connectWallet() {
-    try {
       if (typeof window !== "undefined" && window.ethereum) {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
@@ -30,9 +28,6 @@ export class Web3Service {
       } else {
         return "You Don't Have MetaMask";
       }
-    } catch (error) {
-      throw error;
-    }
   }
   public getProvider(): ethers.BrowserProvider | null {
     return this.provider;

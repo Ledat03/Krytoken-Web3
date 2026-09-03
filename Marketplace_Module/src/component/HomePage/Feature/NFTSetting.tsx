@@ -54,8 +54,8 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
 
               const reqData: Permission = {
                 address: data?.address,
-                tokenAlowance: data?.tokenAlowance,
-                nftAlowanceAll: true,
+                tokenAllowance: data?.tokenAllowance,
+                nftAllowanceAll: true,
               };
               dispatch(savePermission(reqData));
             }
@@ -68,7 +68,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
           loading: "Confirm Approve...",
           success: () => `Approved permission for ${address.substring(0, 4)}...${address.substring(address.length, address.length - 4)}`,
           error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-        }
+        },
       );
     } catch (error) {
       throw error;
@@ -81,7 +81,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
   }, [Loading]);
   return (
     <div className="flex flex-col justify-center items-start w-fit gap-3 px-10">
-      {data?.nftAlowanceAll && (
+      {data?.nftAllowanceAll && (
         <div className="flex gap-3 items-center justify-center border border-green-500 rounded-lg p-2 w-full">
           <span className="text-green-500">You have already approved permission for all NFTs</span>
         </div>
@@ -112,7 +112,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
                         loading: "Updating base URI...",
                         success: () => `Base URI updated. ${URI}`,
                         error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-                      }
+                      },
                     );
                   } catch (error) {
                     throw error;
@@ -160,7 +160,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
                     loading: "Confirm Approve...",
                     success: () => `Approved permission for ${approveAddress.address.substring(0, 4)}...${approveAddress.address.substring(approveAddress.address.length, approveAddress.address.length - 4)}`,
                     error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-                  }
+                  },
                 );
               } catch (error) {
                 throw error;

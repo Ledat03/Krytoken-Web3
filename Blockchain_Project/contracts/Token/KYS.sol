@@ -8,10 +8,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract KYS is ERC20, Pausable, AccessControl {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
     event addedOnBlacklist(address BannedAddress);
     event removedBlacklist(address UnbannedAddress);
-
+    uint256 public totalMinted;
+    uint256 public totalBurned;
     mapping(address => bool) blackList;
 
     constructor() ERC20("Kryptos", "KYS") {
@@ -19,6 +19,7 @@ contract KYS is ERC20, Pausable, AccessControl {
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _mint(msg.sender, 1000000000 * 10 ** decimals());
+        totalMinted += 1000000000 * 10 ** decimals();
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -59,5 +60,10 @@ contract KYS is ERC20, Pausable, AccessControl {
 
     function isBanned(address adr) public view returns (bool) {
         return blackList[adr];
+    }
+    function burn(uint256 amount) public {
+        require(amount > 0,"Amount must greater than 0 !");
+        _burn(msg.sender, amount);
+        totalBurned += amount;
     }
 }

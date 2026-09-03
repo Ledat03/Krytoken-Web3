@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { Verify } from "@/service/MainService";
-import { SignMessage } from "@/service/MainService";
+import { Verify,SignMessage,switchAccount } from "@/service/MainService";
+import {  } from "@/service/MainService";
 interface UserInfo {
   address: string;
   nonce: number;
@@ -18,12 +18,21 @@ export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (addre
   return res.data;
 });
 
+export const switchUser = createAsyncThunk("user/switchUser", async (address: string) => {
+  const resSwitch = await switchAccount(address);
+  const res = await Verify(resSwitch.data.address);
+  console.log("res switch : ", res);
+  if (res.status == 200) {
+    localStorage.setItem("accessToken", res.data.accessToken);
+  }
+  return res.data;
+});
+
 export const checkSignature = createAsyncThunk("user/checkSignature", async (Info: object) => {
   const res = await SignMessage(Info);
   if (res.status == 200) {
     localStorage.setItem("accessToken", res.data.accessToken);
   }
-  console.log(res);
   return res.data;
 });
 const addressUser = createSlice({
@@ -31,7 +40,8 @@ const addressUser = createSlice({
   initialState,
   reducers: {
     storeInfo: (state, action) => {
-      (state.address = action.payload.address), (state.nonce = action.payload.nonce);
+      state.address = action.payload.address;
+      state.nonce = action.payload.nonce;
     },
   },
   extraReducers(builder) {
@@ -48,6 +58,21 @@ const addressUser = createSlice({
         state.isAddressValid = action.payload.verified;
       })
       .addCase(fetchInfoUser.rejected, (state) => {
+        state.isLoading = false;
+        state.isError = true;
+      })
+      .addCase(switchUser.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+      })
+      .addCase(switchUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.address = action.payload.address;
+        state.nonce = action.payload.nonce;
+        state.isError = false;
+        state.isAddressValid = action.payload.verified;
+      })
+      .addCase(switchUser.rejected, (state) => {
         state.isLoading = false;
         state.isError = true;
       })

@@ -1,17 +1,18 @@
+/* eslint-disable no-useless-catch */
 import { gql, request } from "graphql-request";
 import type { NFTsData } from "@/redux/slice/sliceNFTs";
 import type { IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
-import type { IOrderAdded } from "@/redux/slice/sliceOrder";
+import type { IListOrder } from "@/redux/slice/sliceOrder";
 import type { IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import type { IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
 import type { IListSold } from "@/redux/slice/sliceLastestSold";
-const endPoint: string = "https://api.studio.thegraph.com/query/122785/query-nf-ts/version/latest";
+const endPoint: string = import.meta.env.VITE_API_SUBGRAPH;
 const headers = { Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}` };
 
 interface Sales {
   type: string;
   tokenId: number;
-  price: BigInt;
+  price: bigint;
   blockTimestamp: number;
   seller: string;
   buyer: string;
@@ -19,17 +20,17 @@ interface Sales {
 export interface ListSale {
   historyMatcheds: Sales[];
 }
-export const FetchListNFT = async (): Promise<NFTsData> => {
+export const FetchListNFT = async (limit: number, page: number): Promise<NFTsData> => {
   try {
     const ListNFT = gql`
-      {
-        nfts {
+      query limit_nft($limit: Int!, $skip: Int!) {
+        nfts(skip: $skip, first: $limit) {
           tokenURI
           id
         }
       }
     `;
-    return (await request(endPoint, ListNFT, {}, headers)) as NFTsData;
+    return (await request(endPoint, ListNFT, { limit: limit, skip: page * limit }, headers)) as NFTsData;
   } catch (error) {
     throw error;
   }
@@ -62,7 +63,7 @@ export const FetchOrderAdded = async () => {
         }
       }
     `;
-    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IOrderAdded;
+    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrder;
   } catch (error) {
     throw error;
   }

@@ -19,7 +19,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
   const MarketAddress: string = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
   const tokenAddress: string = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
   const { name, symbol, owner, balance, fetchInfoContract } = useNFTContract();
-  const nftAlowance = useSelector((state: RootState) => state.Permission.data?.nftAlowanceAll);
+  const nftAllowance = useSelector((state: RootState) => state.Permission.data?.nftAllowanceAll);
   const dispatch = useDispatch<AppDispatch>();
   const [transferData, setTransferData] = useState({
     tokenAddress: "",
@@ -61,11 +61,11 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
       approveData.spender = MarketAddress;
     }
     const success = await approveTokens(approveData.spender, approveData.amount);
-    if (success && nftAlowance !== undefined) {
+    if (success && nftAllowance !== undefined) {
       const permissionData: Permission = {
         address: account,
-        tokenAlowance: Number(approveData.amount),
-        nftAlowanceAll: nftAlowance,
+        tokenAllowance: Number(approveData.amount),
+        nftAllowanceAll: nftAllowance,
       };
       await dispatch(savePermission(permissionData));
       setApproveData((prev) => ({ ...prev, spender: "", amount: "" }));
@@ -132,27 +132,24 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
       <div className="dark p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold mb-4">Token Balances</h3>
         <div className="space-y-3">
-          {tokens?.map((token, index) => (
-            <div key={index} className="flex items-center justify-between p-3 rounded-md">
-              <div>
-                <span className="font-medium">{token.symbol}</span>
-                <p className="text-xs text-gray-500 font-mono">{formatAddress(token.address)}</p>
-              </div>
-              <div className="text-right">
-                <span className="font-semibold">{formatBalance(token.balance)}</span>
-                <p className="text-xs text-gray-500">{token.symbol}</p>
-              </div>
+          <div className="flex items-center justify-between p-3 rounded-md">
+            <div>
+              <span className="font-medium">{tokens.symbol}</span>
+              <p className="text-xs text-gray-500 font-mono">{formatAddress(tokens.address)}</p>
             </div>
-          ))}
+            <div className="text-right">
+              <span className="font-semibold">{formatBalance(tokens.balance)}</span>
+              <p className="text-xs text-gray-500">{tokens.symbol}</p>
+            </div>
+          </div>
         </div>
-        {data?.tokenAlowance !== 0 && (
+        {data?.tokenAllowance !== 0 && (
           <div className="flex items-center justify-between mb-4 p-3">
             <h2 className="text-[18px] font-bold">Allowance Amount</h2>
             <div className="flex flex-col items-end">
-              <p className="text-md font-bold">{data?.tokenAlowance}</p>
+              <p className="text-md font-bold">{data?.tokenAllowance}</p>
               <p className="text-xs text-gray-500">KYS</p>
             </div>
-            
           </div>
         )}
       </div>

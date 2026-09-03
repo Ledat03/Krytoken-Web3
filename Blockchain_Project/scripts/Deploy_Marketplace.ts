@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  let RItem: any = "0x2f0aba6409a65f0d12a1ca2cf20665919277ea85";
+  let RItem: any ;
   let KYS: any;
   let tokenSale;
   let reverse: any;
@@ -16,10 +16,10 @@ async function main() {
   reverse = await _reserve.deploy(KYS.target);
   await reverse.waitForDeployment();
   console.log("Reverse address = ", reverse.target);
-  // const nftContract = await ethers.getContractFactory("RItem");
-  // RItem = await nftContract.deploy();
-  // await RItem.waitForDeployment();
-  // console.log("RItem address = ", RItem.target);
+  const nftContract = await ethers.getContractFactory("RItem");
+  RItem = await nftContract.deploy();
+  await RItem.waitForDeployment();
+  console.log("RItem address = ", RItem.target);
   const market = await ethers.getContractFactory("Marketplace");
   marketplace = await market.deploy(feeByDecimal, feeRate, reverse, RItem);
   await marketplace.waitForDeployment();
@@ -32,6 +32,7 @@ async function main() {
   await transferTx.wait();
   console.log("tokenSale deployed to:", tokenSale.target);
   console.log("KYS has been added to market(True or False)", await marketplace.isTokenSupported(KYS));
+  console.log("Amount Token : ", await KYS.totalMinted());
 }
 
 main().catch((e) => {

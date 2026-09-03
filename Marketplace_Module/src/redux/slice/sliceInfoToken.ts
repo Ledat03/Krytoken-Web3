@@ -11,19 +11,21 @@ export interface Network {
   name: string;
 }
 interface InfoOfUser {
-  tokenList: TokenInfo[];
+  tokenList: TokenInfo;
   networks: Network;
   userAddress: string;
   isConnected: boolean;
 }
-const initialState: InfoOfUser = { tokenList: [], networks: { chainId: 0, name: "" }, userAddress: "", isConnected: false };
+const initialState: InfoOfUser = { tokenList: { address: "", symbol: "", balance: "", decimals: 0 }, networks: { chainId: 0, name: "" }, userAddress: "", isConnected: false };
 
 const loadInfoUser = createSlice({
   name: "get/LoadInfoUser",
   initialState,
   reducers: {
     getUserInfo: (state, action) => {
-      (state.tokenList = action.payload.tokenList), (state.networks = action.payload.networks), (state.userAddress = action.payload.userAddress);
+      state.tokenList = action.payload.tokenList;
+       (state.networks = action.payload.networks);
+        (state.userAddress = action.payload.userAddress);
       state.isConnected = action.payload.isConnected;
     },
     fetchUserSwitch: (state, action) => {
@@ -31,7 +33,7 @@ const loadInfoUser = createSlice({
     },
     unauthorizeUser: (state) => {
       state.isConnected = false;
-      state.tokenList = [];
+      state.tokenList = { address: "", symbol: "", balance: "", decimals: 0 };
       state.networks = { chainId: 0, name: "" };
       state.userAddress = "";
     },

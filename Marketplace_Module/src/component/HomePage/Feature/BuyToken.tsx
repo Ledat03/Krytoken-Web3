@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import useTokenSale from "@/hooks/useTokenSale";
 import { useSelector } from "react-redux";
@@ -9,13 +9,14 @@ import type { RootState } from "@/redux/store";
 import { Web3 } from "@/service/Web3Service";
 import { ethers } from "ethers";
 import { useContract } from "@/hooks/useContract";
+import { toast } from "sonner";
 const RATE = 10000;
 const MIN_ETH = 0.02;
 
 const BuyToken = () => {
   const [ethAmount, setEthAmount] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { getTokenSaleContract, buyToken, sellToken } = useTokenSale();
+  const { buyToken, sellToken } = useTokenSale();
   const { checkBalance } = useContract();
   const [AmountToken, setAmount] = useState({ nativeToken: "", KYSToken: "" });
   const [Alternative, setAlter] = useState<string>("buy");
@@ -31,11 +32,11 @@ const BuyToken = () => {
     }
     if (!Web3.getProvider()) {
       await Web3.initCreate();
-      let provider = Web3.getProvider();
+      const provider = Web3.getProvider();
       if (provider) {
         try {
-          let nativeBalance = await provider.getBalance(userAddress);
-          let kysToken = await checkBalance(userAddress);
+          const nativeBalance = await provider.getBalance(userAddress);
+          const kysToken = await checkBalance(userAddress);
           console.log(kysToken);
           if (nativeBalance && kysToken) setAmount({ nativeToken: String(ethers.formatEther(nativeBalance.toString())), KYSToken: String(ethers.parseEther(kysToken)) });
         } catch (error) {
@@ -43,11 +44,11 @@ const BuyToken = () => {
         }
       }
     } else {
-      let provider = Web3.getProvider();
+      const provider = Web3.getProvider();
       if (provider) {
         try {
-          let nativeBalance = await provider.getBalance(userAddress);
-          let kysToken = await checkBalance(userAddress);
+          const nativeBalance = await provider.getBalance(userAddress);
+          const kysToken = await checkBalance(userAddress);
           if (nativeBalance && kysToken) setAmount({ nativeToken: ethers.formatEther(nativeBalance.toString()), KYSToken: String(ethers.parseEther(kysToken)) });
         } catch (error) {
           console.error("Error fetching balance:", error);
@@ -71,12 +72,13 @@ const BuyToken = () => {
 
     try {
       setIsLoading(true);
-      await buyToken(ethAmount);
-      alert("Transaction has done !");
+      const tx = await buyToken(ethAmount);
+      if (tx) toast.success("Your transaction has been done !");
     } catch (error) {
       console.error(error);
-      alert("Transaction failed");
+      toast.error("Transaction failed");
     } finally {
+      await getAmountToken();
       setIsLoading(false);
     }
   };
@@ -85,12 +87,13 @@ const BuyToken = () => {
 
     try {
       setIsLoading(true);
-      await sellToken(ethAmount);
-      alert("Transaction has done !");
+      const tx = await sellToken(ethAmount);
+      if (tx) toast.success("Your transaction has been done !");
     } catch (error) {
       console.error(error);
-      alert("Transaction failed");
+      toast.error("Transaction failed");
     } finally {
+      await getAmountToken();
       setIsLoading(false);
     }
   };

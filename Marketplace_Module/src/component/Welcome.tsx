@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { SiX, SiDiscord, SiInstagram } from "react-icons/si";
-import { Input } from "@/components/ui/input";
 import Background from "../../public/background/thumbnail.png";
 import Exclusive01 from "../../public/background/Crescent_Guardian.webp";
 import Loading01 from "../../public/background/CookieLoading_1.webp";
@@ -10,16 +12,22 @@ import Exclusive02 from "../../public/background/GuideOfTheCrumbled.gif";
 import Loading02 from "../../public/background/CookieLoading2.webp";
 import Exclusive03 from "../../public/background/Dusk_of_silence.webp";
 import Loading03 from "../../public/background/CookieLoading3.webp";
-import Cheer from "../../public/background/CheerCookie.webp";
 import ExBackground from "../../public/background/Background.webp";
 import CookieBackground from "../../public/background/CookieBackground.webp";
 import Hang from "../../public/background/NinjaCookie-hang.webp";
 import Intro from "../../public/background/Intro.mp4";
 import { LoadingInit } from "./common/Loading";
 const WelcomePage = () => {
+  const navigate = useNavigate();
+  const isConnected = useSelector((state: RootState) => state.Info.isConnected);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [showLoading, setShow] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (isConnected) navigate("/home");
+  }, [isConnected, navigate]);
+
   useEffect(() => {
     setTimeout(() => {
       setLoading(false);

@@ -1,9 +1,11 @@
+/* eslint-disable no-useless-catch */
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/redux/store";
 import { useCallback } from "react";
 import { nftService } from "@/service/RItemService";
 import type { ethers } from "ethers";
 import { getInitInfo } from "@/redux/slice/sliceNFTContract";
+import { toast } from "sonner";
 export const useNFTContract = () => {
   const dispatch = useDispatch();
   const name: string = useSelector((state: RootState) => state.contractInfo.name);
@@ -29,12 +31,13 @@ export const useNFTContract = () => {
       const contract: ethers.Contract | null = await nftService.getContractNFT();
       if (contract) {
         const res = await nftService.mintWithURI(tokenURI, address);
+        toast.success("NFT minted successfully!");
         return res;
       }
     } catch (error) {
+      toast.error("Failed to mint NFT");
       throw error;
     }
-    return "Can't mint NFT !";
   }, []);
   const updateURI = useCallback(async (newURI: string) => {
     try {
@@ -66,8 +69,9 @@ export const useNFTContract = () => {
         return isApproved;
       }
     } catch (error) {
-      throw error;
+      console.error(error);
     }
+    return false;
   }, []);
   const getTokenURI = useCallback(async (tokenId: number) => {
     try {
@@ -77,8 +81,9 @@ export const useNFTContract = () => {
         return URI;
       }
     } catch (error) {
-      throw error;
+      console.error(error);
     }
+    return null;
   }, []);
   const transferFrom = useCallback(async (from: string, to: string, tokenId: number) => {
     try {
@@ -90,6 +95,7 @@ export const useNFTContract = () => {
     } catch (error) {
       throw error;
     }
+    return false;
   }, []);
   const baseURI = useCallback(async () => {
     try {
@@ -101,6 +107,7 @@ export const useNFTContract = () => {
     } catch (error) {
       throw error;
     }
+    return null;
   }, []);
   const getOwnerOf = useCallback(async (tokenId: number) => {
     try {
@@ -112,6 +119,7 @@ export const useNFTContract = () => {
     } catch (error) {
       throw error;
     }
+    return null;
   }, []);
   return {
     name,

@@ -102,6 +102,9 @@
 .background-black {
   background-color: black !important;
 }
+.header-setting {
+  display: flex;
+}
 .traits-custom {
   margin-right: 20px;
 

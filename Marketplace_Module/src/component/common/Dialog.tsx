@@ -13,7 +13,6 @@ import { ethers } from "ethers";
 import { MdOutlineCancel } from "react-icons/md";
 import { FetchSoldHistory, type ListSale } from "@/GraphQL/SubgraphQuery";
 import type { IListOrder } from "@/redux/slice/sliceOrder";
-4;
 import { FormatTime } from "@/utils/common";
 import { LoadingLayout } from "./Loading";
 import { toast } from "sonner";
@@ -26,15 +25,16 @@ interface NFTDetailDialogProps {
   signer: string;
   feeRate: any;
   ListOrder: IListOrder;
-  Load: () => void;
+  reload: () => void;
   latestSold: string | undefined;
 }
 interface MatchedNFT {
   owner: string;
   price: string;
   status: boolean;
+  orderId: number;
 }
-export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder, latestSold, Load }: NFTDetailDialogProps) {
+export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder, latestSold, reload }: NFTDetailDialogProps) {
   const { connectMarket, createOffer, getOffers, acceptOffer, executeOrder, cancelOffer, addOrder, cancelOrder } = useMarketContract();
   const { getOwnerOf } = useNFTContract();
   const KYSToken: string = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
@@ -47,17 +47,16 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     contractAddress: "",
     ownerAddress: "",
   });
+
   const [History, setHistory] = useState<ListSale>();
-  console.log(History);
   const isOwner = useMemo(() => {
     const map = new Map<string, MatchedNFT>();
     ListOrder.listings?.forEach((item) => {
       const formatPrice = ethers.formatUnits(item.price.toString());
-      map.set(item.tokenId.toString(), { owner: item.owner, price: formatPrice, status: item.isListing });
+      map.set(item.tokenId.toString(), { owner: item.owner, price: formatPrice, status: item.isListing, orderId: item.orderId });
     });
     return map;
   }, [ListOrder.listings]);
-  console.log(ListOrder.listings);
   const [SelectedOffer, setOffer] = useState({ indexNFT: 0, tokenId: nft?.tokenId, price: 0 });
   const [SelectedOrder, setOrder] = useState<number>(0);
 
@@ -71,7 +70,6 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
   });
   const CloseConfirm = () => setShow((prev) => ({ ...prev, showConfirmOffer: false }));
   const CloseCancel = () => setShow((prev) => ({ ...prev, showCancelOffer: false }));
-  console.log(isOpen);
 
   const queryHistory = async () => {
     if (nft) {
@@ -81,7 +79,6 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       }
     }
   };
-  if (nft) console.log(ListOrder, isOwner.get(nft.tokenId.toString()), " ", signer.toLowerCase());
   const loadData = async () => {
     setLoading(true);
     try {
@@ -113,7 +110,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     await getOwner();
     if (nft) {
       const fetchOffer = await getOffers(Number(nft?.tokenId));
-      console.log(fetchOffer);
+
       if (fetchOffer && fetchOffer.length != 0) {
         const list = fetchOffer.map((item: any, index: number) => ({
           buyer: item[0],
@@ -142,7 +139,6 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     try {
       if (nft) {
         const res = await getOwnerOf(nft.tokenId);
-        console.log("owner : ", res);
         if (res) {
           setAddress((prev) => ({
             ...prev,
@@ -153,6 +149,33 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     } catch (error) {
       throw error;
     }
+  };
+  const handleCancel = async (nft: NFTProperty) => {
+    const order = isOwner.get(nft.tokenId.toString());
+    if (order) {
+      toast.promise(
+        cancelOrder(order.orderId).then((res) => {
+          if (res) {
+            onClose();
+            reload();
+          }
+          return res;
+        }),
+        { loading: "Processing...", success: "Your order has already canceled !", error: "Transaction Revert !" },
+      );
+    }
+  };
+  const handleCancelOffer = async (tokenId: number, index: number) => {
+    toast.promise(
+      cancelOffer(tokenId, index).then((res) => {
+        if (res) {
+          onClose();
+          reload();
+        }
+        return res;
+      }),
+      { loading: "Processing...", success: "Cancel offer success !", error: "Transaction Revert !" },
+    );
   };
   const addOffer = async () => {
     try {
@@ -166,24 +189,36 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
         }),
         {
           loading: "Creating offer...",
-          success: "Offer created successfully!,You need to wait for the transaction to be done",
+          success: "Offer created successfully!",
           error: "Error creating offer",
         },
       );
     } catch (error) {
       throw error;
     } finally {
+      reload();
     }
   };
-  const cancelOffered = async (tokenId: number, index: number) => {
+  const handleAddOrder = async (nft: NFTProperty) => {
     try {
-      await cancelOffer(tokenId, index);
-      toast.success("Cancel offer success,You need to wait for the transaction to be done");
+      setFetch(true);
+      toast.promise(
+        addOrder(nft.tokenId, OrderPrice, KYSToken).then((res) => {
+          setFetch(false);
+          return res;
+        }),
+        {
+          loading: "Creating order...",
+          success: "Order created successfully!",
+          error: "Error creating order",
+        },
+      );
     } catch (error) {
-      toast.error(error instanceof String ? error : "Error in cancel offer");
       throw error;
     } finally {
-      Load();
+      setOrderPrice(0);
+      setShow((prev) => ({ ...prev, showAddOrder: false }));
+      reload();
     }
   };
   const confirmOffered = async (tokenId: number, index: number) => {
@@ -194,7 +229,56 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       toast.error(error instanceof String ? error : "Error in accept offer");
       throw error;
     } finally {
-      Load();
+      reload();
+    }
+  };
+
+  const showListOffer = () => {
+    const count = ListOffers.filter((item: any) => item?.active == true);
+    if (count.length > 0) {
+      return count.map((item: any, index: any) => {
+        return (
+          <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
+            <div className="flex flex-col">
+              <span className="text-[12px]">Address</span>
+              <span className="text-[14px]">
+                {item?.buyer.substring(0, 4)}...{item?.buyer.substring(item?.buyer.length, item?.buyer.length - 4)}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className=" text-[12px]">Offer Price</span>
+              <p className=" text-[14px]">{formatBalance(item?.price)} KYS</p>
+            </div>
+            {signer == item?.buyer ? (
+              <Button
+                onClick={() => {
+                  setShow((prev) => ({ ...prev, showCancelOffer: true }));
+                  setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item?.index), price: item?.price }));
+                }}
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                disabled={signer !== Address.ownerAddress}
+                onClick={() => {
+                  setShow((prev) => ({ ...prev, showConfirmOffer: true }));
+                  setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item.index), price: item?.price }));
+                }}
+              >
+                Accept Offer
+              </Button>
+            )}
+          </li>
+        );
+      });
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center w-full h-[300px] text-muted-foreground text-[15px]">
+          <HiOutlineSortDescending size={60} />
+          <span>Make The First Offer For This NFT</span>
+        </div>
+      );
     }
   };
   const flowNotice = () => {
@@ -209,7 +293,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
               <span>You cancel offer NFT with tokenId : #00{nft?.tokenId}</span>
               <span>Offer Price : {SelectedOffer.price}</span>
               <span>
-                Market Fee ( {feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal))}% ) : {SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS
+                Market Fee ({feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal))}% ) : {SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS
               </span>
               <span>You will receive :{SelectedOffer.price - SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS</span>
             </div>
@@ -222,7 +306,6 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                     throw error;
                   } finally {
                     CloseConfirm();
-                    Load();
                   }
                 }}
               >
@@ -249,12 +332,11 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
               <Button
                 onClick={async () => {
                   try {
-                    await cancelOffered(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                    await handleCancelOffer(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
                   } catch (error) {
                     throw error;
                   } finally {
                     CloseCancel();
-                    Load();
                   }
                 }}
               >
@@ -360,13 +442,13 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                         Buy Now
                       </Button>
                     )}{" "}
-                    {isOwner.get(nft.tokenId.toString())?.owner === signer.toLowerCase() ? (
+                    {isOwner.get(nft.tokenId.toString())?.owner === signer.toLowerCase() && isOwner.get(nft.tokenId.toString())?.status ? (
                       <Button
                         disabled={signer === Address.ownerAddress}
                         className="flex-1 hover:bg-black hover:text-white"
                         size="lg"
                         onClick={async () => {
-                          await cancelOrder(ListOrder.listings[0].orderId);
+                          handleCancel(nft);
                         }}
                       >
                         <div className="flex items-center gap-2 text-[15px]">
@@ -378,6 +460,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       <Button
                         className="flex-1 hover:bg-black hover:text-white"
                         size="lg"
+                        disabled={signer !== Address.ownerAddress}
                         onClick={async () => {
                           setShow((prev) => {
                             return { ...prev, showAddOrder: !prev.showAddOrder };
@@ -406,7 +489,8 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                         "Make Offer"
                       )}
                     </Button>
-                  </div>{" "}
+                  </div>
+
                   <DropdownComponent isOpen={show.showAddOrder}>
                     <div className="flex flex-col min-h-[250px] items-center border-y-gray-500 border-y-1 justify-center gap-5">
                       <span className="text-xl font-semibold">Listing NFT</span>
@@ -433,19 +517,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                         </div>
                         <Button
                           onClick={async () => {
-                            setFetch(true);
-                            try {
-                              await addOrder(nft.tokenId, OrderPrice, KYSToken);
-                            } catch (error) {
-                              throw error;
-                            } finally {
-                              setShow((prev) => {
-                                return { ...prev, showAddOrder: !prev.showAddOrder };
-                              });
-                              setOrderPrice(0);
-                              setFetch(false);
-                              Load();
-                            }
+                            await handleAddOrder(nft);
                           }}
                         >
                           Accept
@@ -453,7 +525,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       </div>
                       <div className="text-muted-foreground text-[17px] font-bold flex justify-between w-full h-[30px] border-t-1 pt-1 border-t-gray-700">
                         <span>Market Fee</span>
-                        <span>{OfferPrice * (feeRate[0]?.feeRate / 10 ** (2 + Number(feeRate[0]?.feeByDecimal)))} KYS</span>
+                        <span>{Number(OrderPrice * (feeRate[0]?.feeRate / 10 ** (2 + Number(feeRate[0]?.feeByDecimal)))).toFixed(4)} KYS</span>
                       </div>
                       <span className="text-yellow-300">Notice: This project is on testnet so you only use KYS token to trade NFTs on this marketplace</span>
                     </div>
@@ -511,45 +583,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                   <DropdownComponent isOpen={show.showOffer}>
                     <div className="text-white">
                       {ListOffers.length > 0 ? (
-                        <ul className="flex flex-col gap-4 w-full min-h-[300px]">
-                          {ListOffers.filter((item: any) => item?.active == true).map((item: any, index: any) => {
-                            console.log(item);
-                            return (
-                              <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
-                                <div className="flex flex-col">
-                                  <span className="text-[12px]">Address</span>
-                                  <span className="text-[14px]">
-                                    {item?.buyer.substring(0, 4)}...{item?.buyer.substring(item?.buyer.length, item?.buyer.length - 4)}
-                                  </span>
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className=" text-[12px]">Offer Price</span>
-                                  <p className=" text-[14px]">{formatBalance(item?.price)} KYS</p>
-                                </div>
-                                {signer == item?.buyer ? (
-                                  <Button
-                                    onClick={() => {
-                                      setShow((prev) => ({ ...prev, showCancelOffer: true }));
-                                      setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item?.index), price: item?.price }));
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    disabled={signer !== Address.ownerAddress}
-                                    onClick={() => {
-                                      setShow((prev) => ({ ...prev, showConfirmOffer: true }));
-                                      setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item.index), price: item?.price }));
-                                    }}
-                                  >
-                                    Accept Offer
-                                  </Button>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
+                        <ul className="flex flex-col gap-4 w-full min-h-[300px]">{showListOffer()}</ul>
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-[300px] text-muted-foreground text-[15px]">
                           <HiOutlineSortDescending size={60} />

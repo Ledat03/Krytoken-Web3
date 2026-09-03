@@ -3,7 +3,9 @@ package com.example.Marketplace_System.Controller;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Optional;
 
+import org.apache.catalina.security.SecurityConfig;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +37,6 @@ public class MainController {
     private final AuthSignature authSignature;
     private final JwtDecoder jwtDecoder;
     private final GenerateJWT generateJWT;
-
     public MainController(AddressService addressService, AuthSignature authSignature, JwtDecoder jwtDecoder, GenerateJWT generateJWT) {
         this.addressService = addressService;
         this.authSignature = authSignature;
@@ -46,30 +47,20 @@ public class MainController {
     @PostMapping("/check_user/{address}")
     public ResponseEntity<?> checkUser(@PathVariable String address, HttpServletRequest httpServletRequest) throws Exception {
         Address fetchAddress = addressService.findAddress(address);
-        if(fetchAddress != null){
-            Cookie[] cookies = httpServletRequest.getCookies();
-            String refreshToken = "";
-            for(Cookie cookie :cookies){
-                if(cookie.getName().equals("refreshToken")){
-                    refreshToken = cookie.getValue();
-                    break;
-                }
-            }
-            if (!refreshToken.isBlank() && fetchAddress.isVerified() && fetchAddress.getRefreshToken() != null && fetchAddress.getRefreshToken().equals(refreshToken)) {
+        if(fetchAddress != null) {
+            if(fetchAddress.isVerified() && !fetchAddress.getRefreshToken().isBlank()){
                 return refreshToken(httpServletRequest);
             }
-            if(refreshToken.isBlank() && fetchAddress.isVerified() && fetchAddress.getRefreshToken() != null){
-                return ResponseEntity.status(403).body("Your token has expired !");
-            }
+            return ResponseEntity.status(201).body(fetchAddress);
         }
-        long nonce = new SecureRandom().nextLong(999999);
-        Address newAddress = new Address();
-        newAddress.setAddress(address);
-        newAddress.setVerified(false);
-        newAddress.setNonce(nonce);
-        addressService.saveAddress(newAddress);
-        addressService.savePermission(address, 0, false);
-        return ResponseEntity.status(201).body(newAddress);
+            long nonce = new SecureRandom().nextLong(999999);
+            Address newAddress = new Address();
+            newAddress.setAddress(address);
+            newAddress.setVerified(false);
+            newAddress.setNonce(nonce);
+            addressService.saveAddress(newAddress);
+            addressService.savePermission(address, 0, false);
+            return ResponseEntity.status(201).body(newAddress);
 
     }
 
@@ -83,13 +74,7 @@ public class MainController {
         Cookie[] cookies = httpServletRequest.getCookies();
         String refreshToken = "";
         Address fetchAddress = addressService.findAddress(adr);
-        for(Cookie cookie :cookies){
-            if(cookie.getName().equals("refreshToken")){
-                System.out.println("refreshToken : " + cookie.getName());
-                refreshToken = cookie.getName();
-                break;
-            }
-        }
+        refreshToken = Arrays.stream(cookies).filter(cookie -> cookie.getName().equals("refreshToken")).findAny().get().getValue();
         fetchAddress.setVerified(false);
         fetchAddress.setRefreshToken(null);
         addressService.saveAddress(fetchAddress);
@@ -161,5 +146,27 @@ public class MainController {
         } else {
             return ResponseEntity.status(404).body("Permission not found !!");
         }
+    }
+    @PostMapping("/user/switch/{newUser}")
+    public ResponseEntity<?> switchUser(@PathVariable String newUser ,HttpServletRequest httpServletRequest) throws Exception {
+        Address newLogUser = addressService.findAddress(newUser);
+        Cookie[] cookie = httpServletRequest.getCookies();
+        Optional<String> refreshToken = Arrays.stream(cookie).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue);
+        System.out.println(refreshToken);
+        Jwt decodeToken = jwtDecoder.decode(refreshToken.get());
+        Address currentUser = addressService.findAddress(decodeToken.getSubject());
+        if(currentUser.equals(newLogUser)){
+            return refreshToken(httpServletRequest);
+        }
+        if(newLogUser == null){
+            currentUser.setVerified(false);
+            currentUser.setRefreshToken(null);
+            addressService.saveAddress(currentUser);
+           return checkUser(newUser,httpServletRequest);
+        }
+        currentUser.setVerified(false);
+        currentUser.setRefreshToken(null);
+        addressService.saveAddress(currentUser);
+        return ResponseEntity.status(201).body(newLogUser);
     }
 }

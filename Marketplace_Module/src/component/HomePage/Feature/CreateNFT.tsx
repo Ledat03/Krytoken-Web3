@@ -52,7 +52,6 @@ const CreateNFT = () => {
   });
   const onSubmit = async (value: zod.infer<typeof formValidate>) => {
     console.log(value);
-    const toastId = toast.loading("Minting...");
     const imageUpload: any = await handleUploadImage(value.imgFile);
     console.log(uploadStatus);
     if (imageUpload) {
@@ -75,20 +74,22 @@ const CreateNFT = () => {
       if (resUploaded) {
         try {
           const data = await mintNFT(resUploaded?.data.cid, signer);
-          console.log("NFT already minted !", data);
-          form.reset();
-          setImg(undefined);
-          toast.dismiss(toastId);
-          toast.success("New NFT was minted !");
+          console.log(data);
+          if (data !== undefined && data === true) {
+            form.reset();
+            setImg(undefined);
+            toast.success("New NFT was minted !");
+            setLoading(false);
+          }
         } catch (error) {
-          toast.dismiss(toastId);
+          setLoading(false);
           toast.error("Error when mint NFT");
           throw error;
         }
       }
-      setLoading(false);
     }
   };
+  console.log(Loading);
   return (
     <>
       <div className="form-container w-4xl mx-auto flex flex-col items-center">
@@ -333,8 +334,10 @@ const CreateNFT = () => {
               <p className="text-gray-500">Sepolia Testnet</p>
               <p className="text-gray-300">{`( Default Chain )`}</p>
             </div>
-            <FormDescription className="text-yellow-300 text-center text-xs font-[600]">{"Alert : the contract is in the process of testing on Sepolia, so Sepolia is default chain"}</FormDescription>
-            <Button type="submit">{Loading == false ? "Mint" : "Minting..."}</Button>
+            <FormDescription className="text-yellow-300 text-center text-xs font-[600]">{"Notice : the contract is in the process of testing on Sepolia, so Sepolia is default chain"}</FormDescription>
+            <Button type="submit" disabled={Loading === true}>
+              {Loading == true ? "Minting..." : "Mint"}
+            </Button>
           </form>
         </Form>
       </div>

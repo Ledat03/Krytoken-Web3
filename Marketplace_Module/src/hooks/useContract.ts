@@ -4,15 +4,15 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import type { TokenInfo, Network } from "@/redux/slice/sliceInfoToken";
 import { getUserInfo, fetchUserSwitch } from "@/redux/slice/sliceInfoToken";
-import { fetchInfoUser } from "@/redux/slice/sliceSignature";
-import type { JsonRpcSigner } from "ethers";
+import { fetchInfoUser,switchUser } from "@/redux/slice/sliceSignature";
+import { type JsonRpcSigner } from "ethers";
 
 export const useContract = () => {
   const dispatch = useDispatch<AppDispatch>();
   const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
   const account: string = useSelector((state: RootState) => state?.Info.userAddress);
   const networkInfo: Network = useSelector((state: RootState) => state?.Info.networks);
-  const tokens: TokenInfo[] = useSelector((state: RootState) => state.Info.tokenList);
+  const tokens: TokenInfo = useSelector((state: RootState) => state.Info.tokenList);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -24,9 +24,10 @@ export const useContract = () => {
       if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {
         const networkData = await loadNetworkInfo();
         const tokenData = await loadTokenBalances(connectedAccount);
+
         dispatch(getUserInfo({ userAddress: connectedAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
-        const value = await dispatch(fetchInfoUser(connectedAccount.toString()));
-        console.log(value);
+        await dispatch(fetchInfoUser(connectedAccount.toString()));
+
         return connectedAccount;
       } else {
         console.error("Failed to connect wallet");
@@ -53,15 +54,12 @@ export const useContract = () => {
       if (!balanceAddress) return;
       setLoading(true);
       try {
-        const tokenList: TokenInfo[] = [{ address: import.meta.env.VITE_KYS_CONTRACT_ADDRESS, symbol: "KYS", balance: "0", decimals: 18 }];
-
-        for (const token of tokenList) {
-          if (token.address && token.address !== "0x...") {
-            const balance = await contractService.getTokenBalance(balanceAddress);
-            token.balance = balance;
-          }
+        const token: TokenInfo = { address: import.meta.env.VITE_KYS_CONTRACT_ADDRESS, symbol: "KYS", balance: "0", decimals: 18 };
+        if (token.address && token.address !== "0x...") {
+          const balance = await contractService.getTokenBalance(balanceAddress);
+          token.balance = balance;
         }
-        return tokenList;
+        return token;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading token balances");
       } finally {
@@ -148,6 +146,7 @@ export const useContract = () => {
         }
       } catch (err) {
         console.log("Wallet not connected");
+        throw err;
       }
     };
 
@@ -157,7 +156,7 @@ export const useContract = () => {
         if (accounts.length === 0) {
           dispatch(fetchUserSwitch({ userAddress: "", tokenList: [] }));
         } else {
-          const tokenData = await loadTokenBalances(account);
+          const tokenData = await loadTokenBalances(accounts[0]);
           dispatch(fetchUserSwitch({ userAddress: accounts[0], tokenList: tokenData, isConnected: false }));
         }
       });
@@ -174,6 +173,28 @@ export const useContract = () => {
     };
   }, [loadNetworkInfo, loadTokenBalances]);
 
+  const switchAccount = useCallback(async () => {
+    setLoading(true);
+    setError(undefined);
+    console.log("switch")
+    try {
+      const connectedAccount = await contractService.connectWallet();
+      if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {
+        const networkData = await loadNetworkInfo();
+        const tokenData = await loadTokenBalances(connectedAccount);
+        dispatch(getUserInfo({ userAddress: connectedAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
+        await dispatch(switchUser(connectedAccount.toString()));
+        return connectedAccount;
+      } else {
+        console.error("Failed to connect wallet");
+        setError(connectedAccount || "Fail to connect");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   return {
     isConnected,
     account,
@@ -183,6 +204,7 @@ export const useContract = () => {
     error,
     getSignature,
     connectWallet,
+    switchAccount,
     transferTokens,
     approveTokens,
     loadTokenBalances,
