@@ -3,6 +3,7 @@ package com.example.Marketplace_System.Service;
 import com.example.Marketplace_System.DTO.VerifiedSignature;
 import com.example.Marketplace_System.DTO.VerifySignature;
 import com.example.Marketplace_System.Model.Address;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -21,15 +22,12 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class AuthSignature {
 
     private final AddressService addressService;
     private final GenerateJWT generateJWT;
 
-    AuthSignature(AddressService addressService, GenerateJWT generateJWT) {
-        this.addressService = addressService;
-        this.generateJWT = generateJWT;
-    }
     @Value("${expired-time-refresh-token}")
     private long expiredRefreshToken;
     @Value("${expired-time-access-token}")
@@ -56,7 +54,6 @@ public class AuthSignature {
         BigInteger publicKey = Sign.signedPrefixedMessageToKey(messageBytes, sigData);
         System.out.println("v : " + v);
         System.out.println("Raw message: " + new String(messageBytes, StandardCharsets.UTF_8));
-        System.out.println("Signature: " + verifySignature.getSignature());
         String recoveredAddress = "0x" + Keys.getAddress(publicKey);
         boolean isCorrect = Objects.equals(address.getAddress().toLowerCase(), recoveredAddress);
         if (isCorrect) {

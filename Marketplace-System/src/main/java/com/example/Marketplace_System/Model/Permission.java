@@ -13,6 +13,6 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     private String address;
-    private long tokenAlowance;
-    private boolean nftAlowanceAll;
+    private long tokenAllowance;
+    private boolean nftAllowanceAll;
 }

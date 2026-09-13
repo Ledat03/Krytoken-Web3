@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { Verify,SignMessage,switchAccount } from "@/service/MainService";
 import {  } from "@/service/MainService";
-interface UserInfo {
+export interface UserInfo {
   address: string;
   nonce: number;
   isLoading: boolean;
@@ -13,6 +13,7 @@ export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (addre
   const res = await Verify(address);
   console.log("res data : ", res);
   if (res.status == 200) {
+    
     localStorage.setItem("accessToken", res.data.accessToken);
   }
   return res.data;
@@ -20,6 +21,7 @@ export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (addre
 
 export const switchUser = createAsyncThunk("user/switchUser", async (address: string) => {
   const resSwitch = await switchAccount(address);
+  console.log("run")
   const res = await Verify(resSwitch.data.address);
   console.log("res switch : ", res);
   if (res.status == 200) {

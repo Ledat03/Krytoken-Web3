@@ -74,7 +74,7 @@ public class MainController {
         Cookie[] cookies = httpServletRequest.getCookies();
         String refreshToken = "";
         Address fetchAddress = addressService.findAddress(adr);
-        refreshToken = Arrays.stream(cookies).filter(cookie -> cookie.getName().equals("refreshToken")).findAny().get().getValue();
+        refreshToken = Arrays.stream(cookies).filter(cookie -> cookie.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse("");
         fetchAddress.setVerified(false);
         fetchAddress.setRefreshToken(null);
         addressService.saveAddress(fetchAddress);
@@ -128,8 +128,8 @@ public class MainController {
         } else {
             Permission newPermission = new Permission();
             newPermission.setAddress(address);
-            newPermission.setTokenAlowance(0);
-            newPermission.setNftAlowanceAll(false);
+            newPermission.setTokenAllowance(0);
+            newPermission.setNftAllowanceAll(false);
             addressService.savePermission(address, 0, false);
             return ResponseEntity.ok().body(newPermission);
         }
@@ -139,9 +139,9 @@ public class MainController {
     public ResponseEntity<?> updatePermission(@RequestBody Permission permission) {
         Permission existPermission = addressService.findPermission(permission.getAddress());
         if (existPermission != null) {
-            existPermission.setTokenAlowance(permission.getTokenAlowance());
-            existPermission.setNftAlowanceAll(permission.isNftAlowanceAll());
-            addressService.savePermission(existPermission.getAddress(), existPermission.getTokenAlowance(), existPermission.isNftAlowanceAll());
+            existPermission.setTokenAllowance(permission.getTokenAllowance());
+            existPermission.setNftAllowanceAll(permission.isNftAllowanceAll());
+            addressService.savePermission(existPermission.getAddress(), existPermission.getTokenAllowance(), existPermission.isNftAllowanceAll());
             return ResponseEntity.ok().body(existPermission);
         } else {
             return ResponseEntity.status(404).body("Permission not found !!");

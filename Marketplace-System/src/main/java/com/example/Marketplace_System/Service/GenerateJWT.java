@@ -2,6 +2,7 @@ package com.example.Marketplace_System.Service;
 
 import java.time.Instant;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -11,6 +12,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class GenerateJWT {
 
     JwsHeader generateHeader = JwsHeader.with(SignatureAlgorithm.RS256).build();
@@ -19,10 +21,6 @@ public class GenerateJWT {
     @Value("${expired-time-refresh-token}")
     private long refreshTokenExpertTime;
     private final JwtEncoder jwtEncoder;
-
-    public GenerateJWT(JwtEncoder jwtEncoder) {
-        this.jwtEncoder = jwtEncoder;
-    }
 
     public String generateAccessToken(String address) {
         Instant instant = Instant.now();

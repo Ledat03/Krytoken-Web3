@@ -25,6 +25,7 @@ interface InfoListing {
 
 const posters = [poster, poster1, poster2];
 
+
 export default function Dashboard() {
   const { ListNFTs, NFTstatus, hasMore, loadMore, reset, isFetching } = useInfiniteNFTs();
   const { LoadingInfo, refetchMarketInfo } = useQueryMarketInfo();

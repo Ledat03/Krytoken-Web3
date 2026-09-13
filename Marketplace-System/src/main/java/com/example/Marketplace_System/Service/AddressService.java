@@ -3,19 +3,19 @@ package com.example.Marketplace_System.Service;
 import com.example.Marketplace_System.Model.Address;
 import com.example.Marketplace_System.Repository.addressRepository;
 
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.example.Marketplace_System.Model.Permission;
 import com.example.Marketplace_System.Repository.permissionRepository;
 
 @Service
+@RequiredArgsConstructor
 public class AddressService {
     private final addressRepository addressRepository;
     private final permissionRepository permissionRepository;
-    public AddressService(addressRepository addressRepository, permissionRepository permissionRepository) {
-        this.addressRepository = addressRepository;
-        this.permissionRepository = permissionRepository;
-    }
+
     public Address findAddress(String address){
         return addressRepository.findByAddress(address);
     }
@@ -23,9 +23,11 @@ public class AddressService {
         return addressRepository.save(address);
 
     }
+    @Transactional
     public Address updateAddress(Address address){
         return addressRepository.save(address);
     }
+    @Transactional
     public void verifiedAddress(String address, long nonce, String refreshToken){
         Address existAddress = addressRepository.findByAddress(address);
         if(existAddress != null){
@@ -41,17 +43,18 @@ public class AddressService {
             return null;
         }
     }
+    @Transactional
     public Permission savePermission(String address, long tokenAlowance, boolean nftAlowanceAll){
         Permission existPermission = permissionRepository.findByAddress(address);
         if(existPermission != null){
-            existPermission.setTokenAlowance(tokenAlowance);
-            existPermission.setNftAlowanceAll(nftAlowanceAll);
+            existPermission.setTokenAllowance(tokenAlowance);
+            existPermission.setNftAllowanceAll(nftAlowanceAll);
             return permissionRepository.save(existPermission);
         }else{
             Permission newPermission = new Permission();
             newPermission.setAddress(address);
-            newPermission.setTokenAlowance(tokenAlowance);
-            newPermission.setNftAlowanceAll(nftAlowanceAll);
+            newPermission.setTokenAllowance(tokenAlowance);
+            newPermission.setNftAllowanceAll(nftAlowanceAll);
             return permissionRepository.save(newPermission);
         }
     }

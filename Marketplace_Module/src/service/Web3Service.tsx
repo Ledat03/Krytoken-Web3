@@ -19,11 +19,11 @@ export class Web3Service {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-
         if (accounts) {
           this.provider = new ethers.BrowserProvider(window.ethereum);
           this.signer = await this.provider.getSigner();
         }
+         console.log(this.getSigner())
         if (this.signer) return this.signer?.address;
       } else {
         return "You Don't Have MetaMask";

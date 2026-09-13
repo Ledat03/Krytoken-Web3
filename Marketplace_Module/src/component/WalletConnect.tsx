@@ -3,6 +3,7 @@ import { useNFTContract } from "@/hooks/useNFTContract";
 import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
+import type { UserInfo } from "@/redux/slice/sliceSignature";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fetchPermission, savePermission, type Permission } from "@/redux/slice/slicePermission";
 import { LuCircleUser } from "react-icons/lu";
@@ -22,18 +23,18 @@ const WalletConnect = () => {
   const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
   const account: string = useSelector((state: RootState) => state?.Info.userAddress);
   const KYSbalance: TokenInfo = useSelector((state: RootState) => state?.Info.tokenList);
-  const nonce: number = useSelector((state: RootState) => state.identifyAddress.nonce);
-  const isVerified: boolean = useSelector((state: RootState) => state.identifyAddress.isAddressValid);
+  const UserData: UserInfo  = useSelector((state: RootState) => state.identifyAddress);
   const [sepoliaBalance, setBalance] = useState<string>("");
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
+    console.log(res)
     setAccounts(res);
     if (res) {
       const WalletConnect: boolean = res.length > 0 ? true : false;
       console.log("wallet connect", WalletConnect);
-      if (WalletConnect && nonce === 0) {
+      if (WalletConnect && UserData.nonce === 0) {
         await FetchInfoWallet();
       }
     }
@@ -43,7 +44,8 @@ const WalletConnect = () => {
     if (error) {
       toast.error(error, { duration: 3000 });
     }
-    if (nonce !== 0 && isVerified == false) {
+    if (UserData.nonce !== 0 && UserData.isAddressValid == false) {
+      console.log("run api")
       IdentifyUser();
     }
     if (Web3.getProvider() === null || Web3.getSigner() === null) {
@@ -51,7 +53,7 @@ const WalletConnect = () => {
     } else {
       fetchBalance();
     }
-  }, [isConnected, error, nonce]);
+  }, [isConnected, error, UserData.nonce]);
   const fetchBalance = async () => {
     const provider = Web3.getProvider();
     const signer = Web3.getSigner();
@@ -64,7 +66,7 @@ const WalletConnect = () => {
     if (Loading) return;
     setLoading(true);
     try {
-      await connectWallet();
+     const address =  await connectWallet();
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -97,14 +99,30 @@ const WalletConnect = () => {
         window.location.reload();
       }, 2000);
     } 
-
+  const approvePermissions =  async () => {
+    try {
+       const isApproved: boolean = await approveTokens(marketAdr, "100000");
+              const isApprovedNFT:boolean = await setApprovalForAll(marketAdr, true);
+              const permissionData: Permission = {
+                address: account,
+                tokenAllowance: isApproved ? 100000 : 0,
+                nftAllowanceAll: isApprovedNFT ? true : false ,
+              };
+              await dispatch(savePermission(permissionData));
+    } catch (error:any) {
+      if(error?.code === 4001){
+        toast.error("Transaction canceled !")
+      }
+    }
+    
+  }
   const IdentifyUser = async () => {
     await Web3.connectWallet();
     const signer = Web3.getSigner();
-    if (account && nonce !== 0 && signer !== null) {
-      const signature = await getSignature(nonce.toString(), signer);
+    if (account && UserData.nonce !== 0 && signer !== null) {
+      const signature = await getSignature(UserData.nonce.toString(), signer);
       const Info = {
-        nonce: nonce,
+        nonce: UserData.nonce,
         address: signer.address,
         signature: signature,
       };
@@ -115,14 +133,7 @@ const WalletConnect = () => {
           const permissionData = await dispatch(fetchPermission(account));
           if ((permissionData.meta.requestStatus === "fulfilled" && permissionData.payload.tokenAllowance === 0) || permissionData.payload.nftAllowanceAll === false) {
             try {
-              await approveTokens(marketAdr, "100000");
-              await setApprovalForAll(marketAdr, true);
-              const permissionData: Permission = {
-                address: account,
-                tokenAllowance: 100000,
-                nftAllowanceAll: true,
-              };
-              await dispatch(savePermission(permissionData));
+             approvePermissions();
               toast.success("Anything is set, You can change information in setting !");
             } catch (error) {
               toast.error("Something went wrong");
