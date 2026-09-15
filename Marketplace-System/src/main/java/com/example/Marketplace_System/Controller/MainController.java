@@ -152,17 +152,16 @@ public class MainController {
         Address newLogUser = addressService.findAddress(newUser);
         Cookie[] cookie = httpServletRequest.getCookies();
         Optional<String> refreshToken = Arrays.stream(cookie).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue);
-        System.out.println(refreshToken);
         Jwt decodeToken = jwtDecoder.decode(refreshToken.get());
         Address currentUser = addressService.findAddress(decodeToken.getSubject());
-        if(currentUser.equals(newLogUser)){
+        if (currentUser.equals(newLogUser)) {
             return refreshToken(httpServletRequest);
         }
-        if(newLogUser == null){
+        if (newLogUser == null) {
             currentUser.setVerified(false);
             currentUser.setRefreshToken(null);
             addressService.saveAddress(currentUser);
-           return checkUser(newUser,httpServletRequest);
+            return checkUser(newUser, httpServletRequest);
         }
         currentUser.setVerified(false);
         currentUser.setRefreshToken(null);

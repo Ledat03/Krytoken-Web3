@@ -6,5 +6,5 @@ export const SignMessage = async (verifySignature: object) => await API_Base.pos
 export const renewRefreshToken = () => API_Base.post("/api/user/refresh_token", undefined, { headers: { "Content-Type": "application/json" } });
 export const getPermission = async (address: string) => await API_Base.get(`/api/check/permission/${address}`, { headers: { "Content-Type": "application/json" } });
 export const updatePermission = async (permission: Permission) => await API_Base.post("/api/update/permission", permission, { headers: { "Content-Type": "application/json" } });
-export const logOut = async (address: string) => await API_Base.post(`api/user/log_out/${address}`);
+export const logOut = async (address: string) => await API_Base.post(`/api/user/log_out/${address}`);
 export const switchAccount = async (address:string) => await API_Base.post(`/api/user/switch/${address}`, { headers: { "Content-Type": "application/json" } })

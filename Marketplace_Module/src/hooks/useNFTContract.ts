@@ -68,6 +68,7 @@ export const useNFTContract = () => {
         const isApproved: boolean = await nftService.setApprovalForAll(address, Approved);
         return isApproved;
       }
+      return false;
     } catch (error) {
       console.error(error);
     }

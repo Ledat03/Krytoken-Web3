@@ -4,15 +4,23 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import type { TokenInfo, Network } from "@/redux/slice/sliceInfoToken";
 import { getUserInfo, fetchUserSwitch } from "@/redux/slice/sliceInfoToken";
-import { fetchInfoUser,switchUser } from "@/redux/slice/sliceSignature";
+import { fetchInfoUser, switchUser } from "@/redux/slice/sliceSignature";
 import { type JsonRpcSigner } from "ethers";
 
 export const useContract = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
-  const account: string = useSelector((state: RootState) => state?.Info.userAddress);
-  const networkInfo: Network = useSelector((state: RootState) => state?.Info.networks);
-  const tokens: TokenInfo = useSelector((state: RootState) => state.Info.tokenList);
+  const isConnected: boolean = useSelector(
+    (state: RootState) => state?.Info.isConnected,
+  );
+  const account: string = useSelector(
+    (state: RootState) => state?.Info.userAddress,
+  );
+  const networkInfo: Network = useSelector(
+    (state: RootState) => state?.Info.networks,
+  );
+  const tokens: TokenInfo = useSelector(
+    (state: RootState) => state.Info.tokenList,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -25,7 +33,14 @@ export const useContract = () => {
         const networkData = await loadNetworkInfo();
         const tokenData = await loadTokenBalances(connectedAccount);
 
-        dispatch(getUserInfo({ userAddress: connectedAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
+        dispatch(
+          getUserInfo({
+            userAddress: connectedAccount,
+            networks: networkData,
+            tokenList: tokenData,
+            isConnected: true,
+          }),
+        );
         await dispatch(fetchInfoUser(connectedAccount.toString()));
 
         return connectedAccount;
@@ -54,14 +69,21 @@ export const useContract = () => {
       if (!balanceAddress) return;
       setLoading(true);
       try {
-        const token: TokenInfo = { address: import.meta.env.VITE_KYS_CONTRACT_ADDRESS, symbol: "KYS", balance: "0", decimals: 18 };
+        const token: TokenInfo = {
+          address: import.meta.env.VITE_KYS_CONTRACT_ADDRESS,
+          symbol: "KYS",
+          balance: "0",
+          decimals: 18,
+        };
         if (token.address && token.address !== "0x...") {
           const balance = await contractService.getTokenBalance(balanceAddress);
           token.balance = balance;
         }
         return token;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error loading token balances");
+        setError(
+          err instanceof Error ? err.message : "Error loading token balances",
+        );
       } finally {
         setLoading(false);
       }
@@ -92,18 +114,21 @@ export const useContract = () => {
     [loadTokenBalances],
   );
 
-  const getSignature = useCallback(async (nonce: string, address: JsonRpcSigner) => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      const success = await contractService.signMessage(nonce, address);
-      return success;
-    } catch (err) {
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const getSignature = useCallback(
+    async (nonce: string, address: JsonRpcSigner) => {
+      setLoading(true);
+      setError(undefined);
+      try {
+        const success = await contractService.signMessage(nonce, address);
+        return success;
+      } catch (err) {
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
   const checkBalance = useCallback(async (adr: string) => {
     setLoading(true);
     setError(undefined);
@@ -123,6 +148,7 @@ export const useContract = () => {
       const success = await contractService.approveToken(spender, amount);
       if (success) {
         return true;
+        
       } else {
         setError("Approval failed");
         return false;
@@ -142,7 +168,14 @@ export const useContract = () => {
         if (currentAccount) {
           const networkData = await loadNetworkInfo();
           const tokenData = await loadTokenBalances(currentAccount);
-          dispatch(getUserInfo({ userAddress: currentAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
+          dispatch(
+            getUserInfo({
+              userAddress: currentAccount,
+              networks: networkData,
+              tokenList: tokenData,
+              isConnected: true,
+            }),
+          );
         }
       } catch (err) {
         console.log("Wallet not connected");
@@ -157,7 +190,13 @@ export const useContract = () => {
           dispatch(fetchUserSwitch({ userAddress: "", tokenList: [] }));
         } else {
           const tokenData = await loadTokenBalances(accounts[0]);
-          dispatch(fetchUserSwitch({ userAddress: accounts[0], tokenList: tokenData, isConnected: false }));
+          dispatch(
+            fetchUserSwitch({
+              userAddress: accounts[0],
+              tokenList: tokenData,
+              isConnected: false,
+            }),
+          );
         }
       });
 
@@ -176,13 +215,20 @@ export const useContract = () => {
   const switchAccount = useCallback(async () => {
     setLoading(true);
     setError(undefined);
-    console.log("switch")
+    console.log("switch");
     try {
       const connectedAccount = await contractService.connectWallet();
       if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {
         const networkData = await loadNetworkInfo();
         const tokenData = await loadTokenBalances(connectedAccount);
-        dispatch(getUserInfo({ userAddress: connectedAccount, networks: networkData, tokenList: tokenData, isConnected: true }));
+        dispatch(
+          getUserInfo({
+            userAddress: connectedAccount,
+            networks: networkData,
+            tokenList: tokenData,
+            isConnected: true,
+          }),
+        );
         await dispatch(switchUser(connectedAccount.toString()));
         return connectedAccount;
       } else {

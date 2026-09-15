@@ -8,7 +8,7 @@ const API_Base = axios.create({
 });
 API_Base.interceptors.request.use((config) => {
   const url = config.url || "";
-  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/refresh_token");
+  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/refresh_token") || url.startsWith("/api/user/log_out/");
   if (!isPublic) {
     const token = localStorage.getItem("accessToken");
     if (token && config.headers) (config.headers as any).Authorization = `Bearer ${token}`;

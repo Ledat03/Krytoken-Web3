@@ -52,7 +52,12 @@
         @Bean
         public SecurityFilterChain configSecurityFilterChain(HttpSecurity http) throws Exception {
             http.csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(authorRequest -> authorRequest.requestMatchers("/api/verify_signature","/api/user/log_out/**", "/api/check_user/** ","/api/user/refresh_token").permitAll()
+                    .authorizeHttpRequests(authorRequest -> authorRequest
+                            .requestMatchers("/api/verify_signature",
+                                    "/api/user/log_out/**",
+                                    "/api/check_user/**",
+                                    "/api/user/refresh_token")
+                            .permitAll()
                             .anyRequest().authenticated())
                     .formLogin(AbstractHttpConfigurer::disable)
                     .cors(configurer -> configurer.configurationSource(request -> {
@@ -73,20 +78,7 @@
                 } catch (NoSuchAlgorithmException ex) {
                 } catch (InvalidKeySpecException ex) {
                 }
-            })
-                                    .authenticationEntryPoint((request, response, authException) -> {
-                                        String path = request.getRequestURI();
-                                        if (path.startsWith("/api/user/log_out") ||
-                                                path.startsWith("/api/check_user")) {
-                                            response.setStatus(200);
-                                            return;
-                                        }
-                                        response.setStatus(401);
-                                        response.getWriter().write("Unauthorize !");
-                                    })
-
-                    );
-
+            }));
             return http.build();
         }
 

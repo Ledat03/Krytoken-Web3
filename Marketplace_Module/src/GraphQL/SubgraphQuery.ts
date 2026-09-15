@@ -6,9 +6,11 @@ import type { IListOrder } from "@/redux/slice/sliceOrder";
 import type { IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
 import type { IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
 import type { IListSold } from "@/redux/slice/sliceLastestSold";
+import type { AddressPermission } from "@/utils/interfaceStore";
 const endPoint: string = import.meta.env.VITE_API_SUBGRAPH;
-const headers = { Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}` };
-
+const headers = {
+  Authorization: `Bearer ${import.meta.env.VITE_SUBGRAPH_API_KEY}`,
+};
 interface Sales {
   type: string;
   tokenId: number;
@@ -20,7 +22,10 @@ interface Sales {
 export interface ListSale {
   historyMatcheds: Sales[];
 }
-export const FetchListNFT = async (limit: number, page: number): Promise<NFTsData> => {
+export const FetchListNFT = async (
+  limit: number,
+  page: number,
+): Promise<NFTsData> => {
   try {
     const ListNFT = gql`
       query limit_nft($limit: Int!, $skip: Int!) {
@@ -30,7 +35,12 @@ export const FetchListNFT = async (limit: number, page: number): Promise<NFTsDat
         }
       }
     `;
-    return (await request(endPoint, ListNFT, { limit: limit, skip: page * limit }, headers)) as NFTsData;
+    return (await request(
+      endPoint,
+      ListNFT,
+      { limit: limit, skip: page * limit },
+      headers,
+    )) as NFTsData;
   } catch (error) {
     throw error;
   }
@@ -45,7 +55,12 @@ export const FetchMarketInfo = async () => {
         }
       }
     `;
-    return (await request(endPoint, fetchMarketInfo, {}, headers)) as IMarketFeeRate;
+    return (await request(
+      endPoint,
+      fetchMarketInfo,
+      {},
+      headers,
+    )) as IMarketFeeRate;
   } catch (error) {
     throw error;
   }
@@ -63,7 +78,12 @@ export const FetchOrderAdded = async () => {
         }
       }
     `;
-    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrder;
+    return (await request(
+      endPoint,
+      fetchOrderAdded,
+      {},
+      headers,
+    )) as IListOrder;
   } catch (error) {
     throw error;
   }
@@ -78,7 +98,12 @@ export const FetchOrderCancel = async () => {
         }
       }
     `;
-    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrderCancel;
+    return (await request(
+      endPoint,
+      fetchOrderAdded,
+      {},
+      headers,
+    )) as IListOrderCancel;
   } catch (error) {
     throw error;
   }
@@ -98,7 +123,12 @@ export const FetchOrderMatched = async () => {
         }
       }
     `;
-    return (await request(endPoint, fetchOrderAdded, {}, headers)) as IListOrderMatched;
+    return (await request(
+      endPoint,
+      fetchOrderAdded,
+      {},
+      headers,
+    )) as IListOrderMatched;
   } catch (error) {
     throw error;
   }
@@ -123,11 +153,45 @@ export const FetchSoldHistory = async (tokenId: string) => {
     const variables = {
       tokenId: tokenId.toString(),
     };
-    return (await request(endPoint, fetchSoldHistory, variables, headers)) as ListSale;
+    return (await request(
+      endPoint,
+      fetchSoldHistory,
+      variables,
+      headers,
+    )) as ListSale;
   } catch (error) {
     throw error;
   }
 };
+
+export const FetchUserPermissions = async (address: string) => {
+  const query = gql`
+    query FetchAddressPermission($owner: Bytes) {
+      kryptosApprovals(
+        where: { owner: $owner }
+        first: 1
+        orderBy: blockTimestamp
+      ) {
+        spender
+        owner
+        value
+        id
+      }
+      approvalForAlls(
+        where: { owner: $owner }
+        first: 1
+        orderBy: blockTimestamp
+      ) {
+        approved
+        owner
+        id
+      }
+    }
+  `;
+  const param = { owner: address.toLowerCase() };
+  return (await request(endPoint, query, param, headers)) as AddressPermission;
+};
+
 export const FetchLatestSold = async () => {
   const fetchData = gql`
     query GetAllNFTsLastSale {

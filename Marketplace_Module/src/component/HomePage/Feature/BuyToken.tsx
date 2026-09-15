@@ -10,6 +10,7 @@ import { Web3 } from "@/service/Web3Service";
 import { ethers } from "ethers";
 import { useContract } from "@/hooks/useContract";
 import { toast } from "sonner";
+import { useAddressPermission } from "@/service/QueryService";
 const RATE = 10000;
 const MIN_ETH = 0.02;
 
@@ -18,13 +19,16 @@ const BuyToken = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { buyToken, sellToken } = useTokenSale();
   const { checkBalance } = useContract();
+
   const [AmountToken, setAmount] = useState({ nativeToken: "", KYSToken: "" });
   const [Alternative, setAlter] = useState<string>("buy");
-  const userAddress = useSelector((state: RootState) => state.identifyAddress.address);
+  const userAddress = useSelector((state: RootState) => state.Info.userAddress);
+  const { pmsData } = useAddressPermission(userAddress);
   const parsedEth = Number(ethAmount);
   const isValidNumber = ethAmount !== "" && !Number.isNaN(parsedEth);
   const estimatedKys = isValidNumber ? parsedEth * RATE : 0;
   const estimatedSepolia = isValidNumber ? parsedEth / RATE : 0;
+  console.log(userAddress);
   const getAmountToken = async () => {
     if (!userAddress) {
       console.log("User address not available yet");
@@ -34,11 +38,16 @@ const BuyToken = () => {
       await Web3.initCreate();
       const provider = Web3.getProvider();
       if (provider) {
+        console.log(provider.getSigner);
         try {
           const nativeBalance = await provider.getBalance(userAddress);
           const kysToken = await checkBalance(userAddress);
           console.log(kysToken);
-          if (nativeBalance && kysToken) setAmount({ nativeToken: String(ethers.formatEther(nativeBalance.toString())), KYSToken: String(ethers.parseEther(kysToken)) });
+          if (nativeBalance && kysToken)
+            setAmount({
+              nativeToken: String(ethers.formatEther(nativeBalance.toString())),
+              KYSToken: String(ethers.parseEther(kysToken)),
+            });
         } catch (error) {
           console.error("Error fetching balance:", error);
         }
@@ -49,7 +58,11 @@ const BuyToken = () => {
         try {
           const nativeBalance = await provider.getBalance(userAddress);
           const kysToken = await checkBalance(userAddress);
-          if (nativeBalance && kysToken) setAmount({ nativeToken: ethers.formatEther(nativeBalance.toString()), KYSToken: String(ethers.parseEther(kysToken)) });
+          if (nativeBalance && kysToken)
+            setAmount({
+              nativeToken: ethers.formatEther(nativeBalance.toString()),
+              KYSToken: String(ethers.parseEther(kysToken)),
+            });
         } catch (error) {
           console.error("Error fetching balance:", error);
         }
@@ -62,7 +75,8 @@ const BuyToken = () => {
   const validationMessage = useMemo(() => {
     if (ethAmount === "") return "Fill amount of token";
     if (!isValidNumber || parsedEth <= 0) return "Invalid amount";
-    if (parsedEth < MIN_ETH) return `You need to buy as least ${MIN_ETH} sepolia`;
+    if (parsedEth < MIN_ETH)
+      return `You need to buy as least ${MIN_ETH} sepolia`;
     return "";
   }, [ethAmount, isValidNumber, parsedEth]);
   const canBuy = validationMessage === "" && isValidNumber;
@@ -123,13 +137,21 @@ const BuyToken = () => {
       {Alternative === "buy" && (
         <Card className="dark border-zinc-200">
           <CardHeader>
-            <p className="text-sm text-zinc-500 text-center">Buy KYS with SepoliaETH to use in marketplace</p>
+            <p className="text-sm text-zinc-500 text-center">
+              Buy KYS with SepoliaETH to use in marketplace
+            </p>
+            {pmsData && pmsData.kryptosApprovals.length === 0 && (
+              <p className="text-sm text-red-600 text-center">
+                You need to allow permission to buy token.
+              </p>
+            )}
           </CardHeader>
 
           <CardContent className="dark space-y-5 text-zinc-400">
             <div className="dark rounded-lg p-2 text-sm">
               <p className="mb-1">
-                <span className="font-medium">Exchange Rate:</span> 1 ETH = {RATE} KYS
+                <span className="font-medium">Exchange Rate:</span> 1 ETH ={" "}
+                {RATE} KYS
               </p>
               <p className="mb-1">
                 <span className="font-medium">Min:</span> {MIN_ETH} ETH
@@ -138,20 +160,52 @@ const BuyToken = () => {
 
             <div className="space-y-2">
               <Label htmlFor="eth-amount">Sepolia Amount</Label>
-              <Input id="eth-amount" type="number" min={MIN_ETH} step="0.001" placeholder="Eg: 0.1" value={ethAmount} onChange={(e) => setEthAmount(e.target.value)} />
-              {validationMessage ? <p className="text-sm text-red-500">{validationMessage}</p> : <p className="text-sm text-emerald-600"></p>}
+              <Input
+                id="eth-amount"
+                type="number"
+                min={MIN_ETH}
+                step="0.001"
+                placeholder="Eg: 0.1"
+                value={ethAmount}
+                onChange={(e) => setEthAmount(e.target.value)}
+              />
+              {validationMessage ? (
+                <p className="text-sm text-red-500">{validationMessage}</p>
+              ) : (
+                <p className="text-sm text-emerald-600"></p>
+              )}
             </div>
 
             <div className="rounded-lg border p-4">
-              <p className="text-sm text-zinc-500">You will receive (estimate)</p>
+              <p className="text-sm text-zinc-500">
+                You will receive (estimate)
+              </p>
               <p className="text-2xl font-semibold">{estimatedKys} KYS</p>
             </div>
-            <div>{AmountToken.nativeToken && <p>Your SepoliaETH balance : {Number(AmountToken.nativeToken).toFixed(4)} </p>}</div>
-            <Button className="w-full" disabled={!canBuy || isLoading} onClick={handleBuy}>
+            <div>
+              {AmountToken.nativeToken && (
+                <p>
+                  Your SepoliaETH balance :{" "}
+                  {Number(AmountToken.nativeToken).toFixed(4)}{" "}
+                </p>
+              )}
+            </div>
+            <Button
+              className="w-full"
+              disabled={
+                !canBuy ||
+                isLoading ||
+                (pmsData && pmsData.kryptosApprovals.length === 0)
+              }
+              onClick={handleBuy}
+            >
               {isLoading ? "Proceeding Transaction..." : "Buy"}
             </Button>
 
-            <p className="text-xs text-zinc-500">Notice : Marketplace is on Sepolia Testnet so check your wallet and use SepoliaETH </p>
+            <p className="text-xs text-zinc-500">
+              Notice : Marketplace is on Sepolia Testnet so check your wallet
+              and use SepoliaETH{" "}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -160,7 +214,8 @@ const BuyToken = () => {
           <CardContent className="dark space-y-5 text-zinc-400">
             <div className="dark rounded-lg p-2 text-sm">
               <p className="mb-1">
-                <span className="font-medium">Exchange Rate:</span> 1 SepoliaETH = {RATE} KYS
+                <span className="font-medium">Exchange Rate:</span> 1 SepoliaETH
+                = {RATE} KYS
               </p>
               <p className="mb-1">
                 <span className="font-medium">Min:</span> {MIN_ETH * RATE} KYS
@@ -169,20 +224,56 @@ const BuyToken = () => {
 
             <div className="space-y-2">
               <Label htmlFor="eth-amount">KYS Amount</Label>
-              <Input id="eth-amount" type="number" min={MIN_ETH} step="0.001" placeholder="Eg: 0.1" value={ethAmount} onChange={(e) => setEthAmount(e.target.value)} />
-              {validationMessage ? <p className="text-sm text-red-500">{validationMessage}</p> : <p className="text-sm text-emerald-600"></p>}
+              <Input
+                id="eth-amount"
+                type="number"
+                min={MIN_ETH}
+                step="0.001"
+                placeholder="Eg: 0.1"
+                value={ethAmount}
+                onChange={(e) => setEthAmount(e.target.value)}
+              />
+              {validationMessage ? (
+                <p className="text-sm text-red-500">{validationMessage}</p>
+              ) : (
+                <p className="text-sm text-emerald-600"></p>
+              )}
             </div>
 
             <div className="rounded-lg border p-4">
-              <p className="text-sm text-zinc-500">You will receive (estimate)</p>
-              <p className="text-2xl font-semibold">{estimatedSepolia} SEPOLIA</p>
+              <p className="text-sm text-zinc-500">
+                You will receive (estimate)
+              </p>
+              <p className="text-2xl font-semibold">
+                {estimatedSepolia} SEPOLIA
+              </p>
             </div>
-            <div>{AmountToken.KYSToken && <p>Your KYS balance : {Number(ethers.formatEther(AmountToken.KYSToken)).toFixed(0)} </p>}</div>
-            <Button className="w-full" disabled={!canBuy || isLoading} onClick={handleSell}>
+            <div>
+              {AmountToken.KYSToken && (
+                <p>
+                  Your KYS balance :{" "}
+                  {Number(ethers.formatEther(AmountToken.KYSToken)).toFixed(
+                    0,
+                  )}{" "}
+                </p>
+              )}
+            </div>
+            <Button
+              className="w-full"
+              disabled={
+                !canBuy ||
+                isLoading ||
+                (pmsData && pmsData.kryptosApprovals.length > 0)
+              }
+              onClick={handleSell}
+            >
               {isLoading ? "Proceeding Transaction..." : "Sell"}
             </Button>
 
-            <p className="text-xs text-zinc-500">Notice : Marketplace is on Sepolia Testnet so check your wallet and use SepoliaETH </p>
+            <p className="text-xs text-zinc-500">
+              Notice : Marketplace is on Sepolia Testnet so check your wallet
+              and use SepoliaETH{" "}
+            </p>
           </CardContent>
         </Card>
       )}

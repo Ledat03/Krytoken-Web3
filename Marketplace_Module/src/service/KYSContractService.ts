@@ -51,7 +51,6 @@ export class ContractService extends Web3Service {
     try {
       const contract = await this.getContract();
       if (!contract) throw new Error("Contract not found");
-
       const amountWei = ethers.parseEther(amount);
       console.log(this.signer);
       const tx = await contract.approve(spender, amountWei);

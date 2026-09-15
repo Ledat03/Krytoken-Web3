@@ -4,8 +4,18 @@ import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import type { UserInfo } from "@/redux/slice/sliceSignature";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { fetchPermission, savePermission, type Permission } from "@/redux/slice/slicePermission";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  fetchPermission,
+  savePermission,
+  type Permission,
+} from "@/redux/slice/slicePermission";
 import { LuCircleUser } from "react-icons/lu";
 import { useEffect, useState } from "react";
 import { Web3 } from "@/service/Web3Service";
@@ -14,22 +24,35 @@ import { logOut } from "@/service/MainService";
 import { unauthorizeUser, type TokenInfo } from "@/redux/slice/sliceInfoToken";
 import { ethers } from "ethers";
 import { DropdownMenuLabel } from "@radix-ui/react-dropdown-menu";
+import { useAddressPermission } from "@/service/QueryService";
 const WalletConnect = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { connectWallet, getSignature, approveTokens, error ,switchAccount } = useContract();
+  const { connectWallet, getSignature, approveTokens, error, switchAccount } =
+    useContract();
   const { setApprovalForAll } = useNFTContract();
   const [Loading, setLoading] = useState<boolean>(false);
-  const [PermissionAccount, setAccounts] = useState<[] | undefined>(undefined);
-  const isConnected: boolean = useSelector((state: RootState) => state?.Info.isConnected);
-  const account: string = useSelector((state: RootState) => state?.Info.userAddress);
-  const KYSbalance: TokenInfo = useSelector((state: RootState) => state?.Info.tokenList);
-  const UserData: UserInfo  = useSelector((state: RootState) => state.identifyAddress);
+  const [PermissionAccount, setAccounts] = useState<string[] | undefined>(
+    undefined,
+  );
+  const isConnected: boolean = useSelector(
+    (state: RootState) => state?.Info.isConnected,
+  );
+  const account: string = useSelector(
+    (state: RootState) => state?.Info.userAddress,
+  );
+  const KYSbalance: TokenInfo = useSelector(
+    (state: RootState) => state?.Info.tokenList,
+  );
+  const UserData: UserInfo = useSelector(
+    (state: RootState) => state.identifyAddress,
+  );
   const [sepoliaBalance, setBalance] = useState<string>("");
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
+  const { pmsData, isLoading, refetch, status } = useAddressPermission(account);
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
-    console.log(res)
+    console.log(res);
     setAccounts(res);
     if (res) {
       const WalletConnect: boolean = res.length > 0 ? true : false;
@@ -39,13 +62,14 @@ const WalletConnect = () => {
       }
     }
   };
+  console.log(Loading);
   useEffect(() => {
     checkConnect();
     if (error) {
       toast.error(error, { duration: 3000 });
     }
     if (UserData.nonce !== 0 && UserData.isAddressValid == false) {
-      console.log("run api")
+      console.log("run api");
       IdentifyUser();
     }
     if (Web3.getProvider() === null || Web3.getSigner() === null) {
@@ -63,59 +87,82 @@ const WalletConnect = () => {
     }
   };
   const FetchInfoWallet = async () => {
-    if (Loading) return;
-    setLoading(true);
     try {
-     const address =  await connectWallet();
+      const address = await connectWallet();
     } catch (error) {
       console.log(error);
-      setLoading(false);
-    } finally {
-      setLoading(false);
     }
   };
   const SwitchAccount = async () => {
-    console.log("switch")
+    console.log("switch");
     if (!window.ethereum) return;
     await window.ethereum.request({
       method: "wallet_requestPermissions",
       params: [{ eth_accounts: {} }],
     });
     await switchAccount();
+    await refetch();
   };
 
   const DisconnectWallet = async () => {
-      localStorage.removeItem("accessToken");
-      if (window.ethereum?.request) {
-        await window.ethereum.request({
-          method: "wallet_revokePermissions",
-          params: [{ eth_accounts: {} }],
-        });
-      }
-      await logOut(account);
-      dispatch(unauthorizeUser());
-      toast.success("Wallet is disconnected");
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } 
-  const approvePermissions =  async () => {
-    try {
-       const isApproved: boolean = await approveTokens(marketAdr, "100000");
-              const isApprovedNFT:boolean = await setApprovalForAll(marketAdr, true);
-              const permissionData: Permission = {
-                address: account,
-                tokenAllowance: isApproved ? 100000 : 0,
-                nftAllowanceAll: isApprovedNFT ? true : false ,
-              };
-              await dispatch(savePermission(permissionData));
-    } catch (error:any) {
-      if(error?.code === 4001){
-        toast.error("Transaction canceled !")
-      }
+    localStorage.removeItem("accessToken");
+    if (window.ethereum?.request) {
+      await window.ethereum.request({
+        method: "wallet_revokePermissions",
+        params: [{ eth_accounts: {} }],
+      });
     }
-    
-  }
+    await logOut(account);
+    dispatch(unauthorizeUser());
+    toast.success("Wallet is disconnected");
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  };
+  const approvePermissions = async () => {
+    setLoading(true);
+    try {
+      const permissionData: Permission = {
+        address: account,
+        tokenAllowance: 0,
+        nftAllowanceAll: false,
+      };
+      let isApproved: boolean = false;
+      let isApprovedNFT: boolean = false;
+      if (pmsData !== undefined && pmsData.kryptosApprovals.length === 0) {
+        isApproved = await approveTokens(marketAdr, "100000");
+      } else {
+        isApproved = true;
+      }
+      if (pmsData !== undefined && pmsData.approvalForAlls.length === 0) {
+        isApprovedNFT = await setApprovalForAll(marketAdr, true);
+      } else {
+        isApprovedNFT = true;
+      }
+
+      console.log(permissionData);
+      console.log(isApproved + " " + isApprovedNFT);
+      if (isApproved || isApprovedNFT)
+        permissionData.tokenAllowance = isApproved ? 100000 : 0;
+      permissionData.nftAllowanceAll = isApprovedNFT ? true : false;
+      await dispatch(savePermission(permissionData));
+      if (!isApproved) {
+        toast.warning("You have to allow token permission to trade in market.");
+      }
+      if (!isApprovedNFT) {
+        toast.warning(
+          "You have to allow nfts access permission to trade in market !",
+        );
+      }
+    } catch (error: any) {
+      if (error?.code === 4001) {
+        toast.error("Transaction canceled !");
+      }
+    } finally {
+      refetch();
+      setLoading(false);
+    }
+  };
   const IdentifyUser = async () => {
     await Web3.connectWallet();
     const signer = Web3.getSigner();
@@ -131,14 +178,12 @@ const WalletConnect = () => {
         const isVerified: boolean = data.payload.verified;
         if (account !== "" && isVerified) {
           const permissionData = await dispatch(fetchPermission(account));
-          if ((permissionData.meta.requestStatus === "fulfilled" && permissionData.payload.tokenAllowance === 0) || permissionData.payload.nftAllowanceAll === false) {
-            try {
-             approvePermissions();
-              toast.success("Anything is set, You can change information in setting !");
-            } catch (error) {
-              toast.error("Something went wrong");
-              throw error;
-            }
+          if (
+            (pmsData === undefined &&
+              permissionData.payload.tokenAllowance === 0) ||
+            permissionData.payload.nftAllowanceAll === false
+          ) {
+            await approvePermissions();
           }
         }
       }
@@ -147,9 +192,25 @@ const WalletConnect = () => {
   };
   const start = account.substring(0, 4);
   const end = account.substring(account.length, account.length - 4);
+  console.log(pmsData);
+  if (Loading) {
+    toast.message("Loading...");
+  }
   return (
     <>
-      {PermissionAccount == undefined || PermissionAccount.length === 0 || account === undefined ? (
+      {pmsData !== undefined &&
+        (pmsData.approvalForAlls?.length === 0 ||
+          pmsData.kryptosApprovals?.length === 0) && (
+          <div className="">
+            <p>
+              You need to allow permission to use this market{" "}
+              <button onClick={() => approvePermissions()}>Sign</button>
+            </p>
+          </div>
+        )}
+      {PermissionAccount == undefined ||
+      PermissionAccount.length === 0 ||
+      account === undefined ? (
         <button
           onClick={() => {
             FetchInfoWallet();
@@ -161,7 +222,10 @@ const WalletConnect = () => {
         <DropdownMenu>
           <DropdownMenuTrigger className="relative">
             <p>
-              <LuCircleUser size={30} className=" absolute left-[-35px] top-[-5px]" />
+              <LuCircleUser
+                size={30}
+                className=" absolute left-[-35px] top-[-5px]"
+              />
               {start}...{end}
             </p>
           </DropdownMenuTrigger>
@@ -184,7 +248,10 @@ const WalletConnect = () => {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="header-setting" onClick={() => SwitchAccount()}>
+            <DropdownMenuItem
+              className="header-setting"
+              onClick={() => SwitchAccount()}
+            >
               Switch Address
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -198,7 +265,10 @@ const WalletConnect = () => {
               <a href="/home/nft/manage">Manage NFT</a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="header-setting" onClick={DisconnectWallet}>
+            <DropdownMenuItem
+              className="header-setting"
+              onClick={DisconnectWallet}
+            >
               <p>Disconnected</p>{" "}
             </DropdownMenuItem>
           </DropdownMenuContent>

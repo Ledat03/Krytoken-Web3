@@ -1,15 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FetchListNFT, FetchMarketInfo, FetchOrderAdded, FetchOrderCancel, FetchOrderMatched, FetchSoldHistory, FetchLatestSold } from "@/GraphQL/SubgraphQuery";
+import {
+  FetchListNFT,
+  FetchMarketInfo,
+  FetchOrderAdded,
+  FetchOrderCancel,
+  FetchOrderMatched,
+  FetchSoldHistory,
+  FetchLatestSold,
+  FetchUserPermissions,
+} from "@/GraphQL/SubgraphQuery";
 import { useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { type NFTProperty } from "@/redux/slice/sliceNFTs";
-import { fetchMarketInfo, type IMarketFeeRate } from "@/redux/slice/sliceMarketInfo";
+import { getBytes } from "ethers";
+import {
+  fetchMarketInfo,
+  type IMarketFeeRate,
+} from "@/redux/slice/sliceMarketInfo";
 import { fillListOrder, type IListOrder } from "@/redux/slice/sliceOrder";
-import { fillListCancel, type IListOrderCancel } from "@/redux/slice/sliceCancelOffer";
-import { fillListMatched, type IListOrderMatched } from "@/redux/slice/sliceMatchedOffer";
+import {
+  fillListCancel,
+  type IListOrderCancel,
+} from "@/redux/slice/sliceCancelOffer";
+import {
+  fillListMatched,
+  type IListOrderMatched,
+} from "@/redux/slice/sliceMatchedOffer";
 import { useEffect } from "react";
 import { PinataSDK } from "pinata";
 import { setLatestSoldData } from "@/redux/slice/sliceLastestSold";
+import type { AddressPermission } from "@/utils/interfaceStore";
 
 const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT_KEY!,
@@ -28,11 +48,15 @@ export const useListNFTs = (limit: number, page: number) => {
       const resolvedData = await Promise.all(
         listNFTs.map(async (item) => {
           const response = await pinata.gateways.public.get(item.tokenURI);
-          const meta = typeof response.data === "object" && response.data !== null ? response.data : undefined;
+          const meta =
+            typeof response.data === "object" && response.data !== null
+              ? response.data
+              : undefined;
           return {
             tokenId: item.tokenId,
             name: meta && "name" in meta ? (meta as any).name : "",
-            subscription: meta && "description" in meta ? (meta as any).description : "",
+            subscription:
+              meta && "description" in meta ? (meta as any).description : "",
             trait: meta && "traits" in meta ? (meta as any).traits : {},
             image: meta && "image" in meta ? (meta as any).image : "",
           } as NFTProperty;
@@ -50,6 +74,16 @@ export const useListNFTs = (limit: number, page: number) => {
   };
 };
 
+export const useAddressPermission = (address: string | "") => {
+  console.log(address)
+  const { data, status, isLoading, refetch } = useQuery<AddressPermission>({
+    queryKey: ["AdrPermissions"],
+    queryFn: () => FetchUserPermissions(address),
+    enabled: !!address && address !== "",
+  });
+  return { pmsData:data, status, isLoading, refetch };
+};
+
 export const useQueryMarketInfo = () => {
   const dispatch = useDispatch();
   const { data, status, isLoading, refetch } = useQuery<IMarketFeeRate>({
@@ -61,7 +95,12 @@ export const useQueryMarketInfo = () => {
       dispatch(fetchMarketInfo(data));
     }
   }, [status, data]);
-  return { MarketData: data, MarketStatus: status, LoadingInfo: isLoading, refetchMarketInfo: refetch };
+  return {
+    MarketData: data,
+    MarketStatus: status,
+    LoadingInfo: isLoading,
+    refetchMarketInfo: refetch,
+  };
 };
 
 export const useQueryOrderAdded = () => {
@@ -73,7 +112,12 @@ export const useQueryOrderAdded = () => {
   useEffect(() => {
     dispatch(fillListOrder(data));
   }, [status, data]);
-  return { OrderAddedData: data, OrderAddedStatus: status, OrderAddedLoading: isLoading, refetchOrderAdded: refetch };
+  return {
+    OrderAddedData: data,
+    OrderAddedStatus: status,
+    OrderAddedLoading: isLoading,
+    refetchOrderAdded: refetch,
+  };
 };
 
 export const useQueryOrderCancel = () => {
@@ -96,7 +140,12 @@ export const useQueryOrderMatched = () => {
   useEffect(() => {
     dispatch(fillListMatched(data));
   }, [status, data]);
-  return { OrderMatched: data, StatusMatched: status, LoadingMatched: isLoading, refetchOrderMatched: refetch };
+  return {
+    OrderMatched: data,
+    StatusMatched: status,
+    LoadingMatched: isLoading,
+    refetchOrderMatched: refetch,
+  };
 };
 
 export const useQueryHistoryByTokenId = (tokenId: string) => {
@@ -104,7 +153,12 @@ export const useQueryHistoryByTokenId = (tokenId: string) => {
     queryKey: ["HistoryTransaction", tokenId],
     queryFn: () => FetchSoldHistory(tokenId),
   });
-  return { HistoryStatus: status, HistoryTransaction: data, LoadingHistory: isLoading, refetchHistory: refetch };
+  return {
+    HistoryStatus: status,
+    HistoryTransaction: data,
+    LoadingHistory: isLoading,
+    refetchHistory: refetch,
+  };
 };
 
 export const useQueryLatestSoldData = () => {
@@ -116,5 +170,9 @@ export const useQueryLatestSoldData = () => {
   useEffect(() => {
     if (status === "success") dispatch(setLatestSoldData(data));
   }, [status, data]);
-  return { LatestSoldStatus: status, LatestSoldLoading: isLoading, refetchLatestSold: refetch };
+  return {
+    LatestSoldStatus: status,
+    LatestSoldLoading: isLoading,
+    refetchLatestSold: refetch,
+  };
 };
