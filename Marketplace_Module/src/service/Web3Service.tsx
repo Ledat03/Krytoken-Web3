@@ -10,24 +10,27 @@ export class Web3Service {
     if (window.ethereum) {
       this.provider = new ethers.BrowserProvider(window.ethereum);
       this.signer = await this.provider.getSigner();
+     
     } else {
       console.error("MetaMask not detected!");
     }
   }
   public async connectWallet() {
-      if (typeof window !== "undefined" && window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        if (accounts) {
-          this.provider = new ethers.BrowserProvider(window.ethereum);
-          this.signer = await this.provider.getSigner();
-        }
-         console.log(this.getSigner())
-        if (this.signer) return this.signer?.address;
-      } else {
-        return "You Don't Have MetaMask";
+    if (typeof window !== "undefined" && window.ethereum) {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      if (accounts) {
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+        this.signer = await this.provider.getSigner();
+        console.log(this.signer);
+      console.log(this.provider);
       }
+      console.log(this.getSigner());
+      if (this.signer) return this.signer?.address;
+    } else {
+      return "You Don't Have MetaMask";
+    }
   }
   public getProvider(): ethers.BrowserProvider | null {
     return this.provider;

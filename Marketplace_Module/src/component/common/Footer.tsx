@@ -1,8 +1,8 @@
 const Footer = () => {
   return (
     <>
-      <div className="w-full min-h-[40px] bg-[#15181e] flex items-center">
-        <div className="text-gray-400 pl-2 text-[15px] font-bold">© 2026 0xKrytos</div>
+      <div className="w-full min-h-[40px] bg-background border-t-2 border-[#2a3028] flex items-center">
+        <div className="text-muted-foreground pl-2 text-[15px] font-bold cookie-text">© 2026 0xKrytos</div>
       </div>
     </>
   );

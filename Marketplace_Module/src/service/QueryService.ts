@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   FetchListNFT,
   FetchMarketInfo,
@@ -8,11 +7,11 @@ import {
   FetchSoldHistory,
   FetchLatestSold,
   FetchUserPermissions,
+  FetchOwnerNFTs,
 } from "@/GraphQL/SubgraphQuery";
 import { useQuery } from "@tanstack/react-query";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { type NFTProperty } from "@/redux/slice/sliceNFTs";
-import { getBytes } from "ethers";
 import {
   fetchMarketInfo,
   type IMarketFeeRate,
@@ -29,7 +28,9 @@ import {
 import { useEffect } from "react";
 import { PinataSDK } from "pinata";
 import { setLatestSoldData } from "@/redux/slice/sliceLastestSold";
+import { useNFTContract } from "@/hooks/useNFTContract";
 import type { AddressPermission } from "@/utils/interfaceStore";
+import type { RootState } from "@/redux/store";
 
 const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT_KEY!,
@@ -40,11 +41,14 @@ export const useListNFTs = (limit: number, page: number) => {
   const { data, status, refetch, isFetching } = useQuery<NFTProperty[]>({
     queryKey: ["ListNFTs", limit, page],
     queryFn: async () => {
+      console.log("run")
       const raw = await FetchListNFT(limit, page);
+      console.log(raw)
       const listNFTs = raw.nfts.map((item) => ({
         tokenId: item.id,
         tokenURI: item.tokenURI.replace("ipfs://", ""),
       }));
+      
       const resolvedData = await Promise.all(
         listNFTs.map(async (item) => {
           const response = await pinata.gateways.public.get(item.tokenURI);
@@ -65,6 +69,74 @@ export const useListNFTs = (limit: number, page: number) => {
       return resolvedData;
     },
   });
+  
+  const typeBlank: NFTProperty[] = [];
+  return {
+    NFTs: data ?? typeBlank,
+    NFTstatus: status,
+    isFetching,
+    refetchListNFT: refetch,
+  };
+};
+export const useManageNFTs = (owner: string,orderData:IListOrder) => {
+  console.log(owner);
+  const { getOwnerOf } = useNFTContract();
+  const orderNFTs = orderData?.listings?.filter((listing) => {
+    console.log(listing)
+    if (listing.owner.toLowerCase() === owner.toLowerCase() && listing.isListing === true) {
+      return listing;
+    }
+    return null;
+  });
+  console.log(orderNFTs)
+  const { data, status, refetch, isFetching } = useQuery<NFTProperty[]>({
+    queryKey: ["FetchOwnerNFTs", owner,orderData],
+    queryFn: async () => {
+      console.log("revoke");
+      const raw = await FetchOwnerNFTs();
+      console.log("raw " + raw);
+      const listNFTs = (
+        await Promise.all(
+          raw.nfts.map(async (item) => {
+            const ownerNFT: string = await getOwnerOf(item.id);
+            console.log(ownerNFT);
+            if (
+              ownerNFT.toLowerCase() === owner.toLowerCase() ||
+              orderNFTs.find((order) => order.tokenId === item.id)
+            ) {
+              return {
+                tokenId: item.id,
+                tokenURI: item.tokenURI.replace("ipfs://", ""),
+              };
+            }
+            return null;
+          }),
+        )
+      ).filter((item) => item != null);
+      console.log(listNFTs);
+      if (listNFTs.length === 0) return [];
+      const resolvedData = await Promise.all(
+        listNFTs.map(async (item) => {
+          const response = await pinata.gateways.public.get(item.tokenURI);
+          const meta =
+            typeof response.data === "object" && response.data !== null
+              ? response.data
+              : undefined;
+          return {
+            tokenId: item.tokenId,
+            name: meta && "name" in meta ? (meta as any).name : "",
+            subscription:
+              meta && "description" in meta ? (meta as any).description : "",
+            trait: meta && "traits" in meta ? (meta as any).traits : {},
+            image: meta && "image" in meta ? (meta as any).image : "",
+          } as NFTProperty;
+        }),
+      );
+      return resolvedData;
+    },
+    enabled: (!!owner || owner != "") && orderData.listings.length !== 0,
+  });
+  console.log(data);
   const typeBlank: NFTProperty[] = [];
   return {
     NFTs: data ?? typeBlank,
@@ -75,13 +147,12 @@ export const useListNFTs = (limit: number, page: number) => {
 };
 
 export const useAddressPermission = (address: string | "") => {
-  console.log(address)
   const { data, status, isLoading, refetch } = useQuery<AddressPermission>({
-    queryKey: ["AdrPermissions"],
+    queryKey: ["AdrPermissions", address],
     queryFn: () => FetchUserPermissions(address),
     enabled: !!address && address !== "",
   });
-  return { pmsData:data, status, isLoading, refetch };
+  return { pmsData: data, status, isLoading, refetch };
 };
 
 export const useQueryMarketInfo = () => {

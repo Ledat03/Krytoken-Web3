@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { contractService } from "../service/KYSContractService";
 import { useDispatch, useSelector } from "react-redux";
+import { fetchPermission } from "@/redux/slice/slicePermission";
 import type { RootState, AppDispatch } from "@/redux/store";
 import type { TokenInfo, Network } from "@/redux/slice/sliceInfoToken";
 import { getUserInfo, fetchUserSwitch } from "@/redux/slice/sliceInfoToken";
@@ -42,6 +43,7 @@ export const useContract = () => {
           }),
         );
         await dispatch(fetchInfoUser(connectedAccount.toString()));
+        await  dispatch(fetchPermission(connectedAccount.toString()))
 
         return connectedAccount;
       } else {
@@ -215,7 +217,6 @@ export const useContract = () => {
   const switchAccount = useCallback(async () => {
     setLoading(true);
     setError(undefined);
-    console.log("switch");
     try {
       const connectedAccount = await contractService.connectWallet();
       if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {

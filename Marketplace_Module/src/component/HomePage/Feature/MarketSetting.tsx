@@ -53,7 +53,7 @@ export default function MarketplaceSettings() {
       </div>
 
       <div className="space-y-6">
-        <div className="dark bg-card border border-border rounded-lg p-6">
+        <div className="comic-panel bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-bold text-fo  reground mb-4">Recipient Address</h2>
           <div className="space-y-4">
             <div>
@@ -78,7 +78,7 @@ export default function MarketplaceSettings() {
           </div>
         </div>
 
-        <div className="dark bg-card border border-border rounded-lg p-6">
+        <div className="comic-panel bg-card border border-border rounded-lg p-6">
           <h2 className="text-xl font-bold text-foreground mb-4">Fee Rate</h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

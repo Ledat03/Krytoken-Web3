@@ -55,11 +55,13 @@ export class ContractService extends Web3Service {
       console.log(this.signer);
       const tx = await contract.approve(spender, amountWei);
       await tx.wait();
+      console.log(tx)
       return true;
     } catch (error) {
       console.error("Error approving token:", error);
       return false;
     }
+
   }
 
   async getCurrentAccount(): Promise<string | null> {

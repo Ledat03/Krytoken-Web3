@@ -16,7 +16,12 @@ interface InfoOfUser {
   userAddress: string;
   isConnected: boolean;
 }
-const initialState: InfoOfUser = { tokenList: { address: "", symbol: "", balance: "", decimals: 0 }, networks: { chainId: 0, name: "" }, userAddress: "", isConnected: false };
+const initialState: InfoOfUser = {
+  tokenList: { address: "", symbol: "", balance: "", decimals: 0 },
+  networks: { chainId: 0, name: "" },
+  userAddress: "",
+  isConnected: false,
+};
 
 const loadInfoUser = createSlice({
   name: "get/LoadInfoUser",
@@ -24,12 +29,15 @@ const loadInfoUser = createSlice({
   reducers: {
     getUserInfo: (state, action) => {
       state.tokenList = action.payload.tokenList;
-       (state.networks = action.payload.networks);
-        (state.userAddress = action.payload.userAddress);
+      state.networks = action.payload.networks;
+      state.userAddress = action.payload.userAddress;
       state.isConnected = action.payload.isConnected;
     },
     fetchUserSwitch: (state, action) => {
+      state.tokenList = action.payload.tokenList;
+      state.networks = action.payload.networks;
       state.userAddress = action.payload.userAddress;
+      state.isConnected = action.payload.isConnected;
     },
     unauthorizeUser: (state) => {
       state.isConnected = false;
@@ -39,5 +47,6 @@ const loadInfoUser = createSlice({
     },
   },
 });
-export const { getUserInfo, fetchUserSwitch, unauthorizeUser } = loadInfoUser.actions;
+export const { getUserInfo, fetchUserSwitch, unauthorizeUser } =
+  loadInfoUser.actions;
 export default loadInfoUser.reducer;

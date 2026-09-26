@@ -22,7 +22,7 @@ const CreateNFT = () => {
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const { handleUploadImage, handleUploadJson, uploadStatus } = UploadPinata();
   const [Loading, setLoading] = useState<boolean>(false);
-  let btnAddFile = useRef<HTMLInputElement>(null);
+  const btnAddFile = useRef<HTMLInputElement>(null);
   const [img, setImg] = useState<string | undefined>(undefined);
   const handleClick = () => {
     btnAddFile.current?.click();
@@ -132,7 +132,7 @@ const CreateNFT = () => {
                         <SelectTrigger className="w-[150px]">
                           <SelectValue className=" flex-1 justify-center text-center" placeholder={"Choose Rarity"} />
                         </SelectTrigger>
-                        <SelectContent className="border-0 shadow-none bg-black">
+                        <SelectContent className="border-2 border-[#2a3028] shadow-none bg-card">
                           <SelectGroup>
                             <SelectItem className="select-custom" value="Common">
                               <img src={images.Common} alt="Common" />
@@ -179,7 +179,7 @@ const CreateNFT = () => {
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Choose Class" />
                         </SelectTrigger>
-                        <SelectContent className="border-0 bg-black">
+                        <SelectContent className="border-2 border-[#2a3028] bg-card">
                           <SelectGroup>
                             <SelectItem className="select-custom " value="Charge">
                               <p className="text-amber-400">Charge</p>

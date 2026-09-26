@@ -45,6 +45,21 @@ export const FetchListNFT = async (
     throw error;
   }
 };
+export const FetchOwnerNFTs = async (): Promise<NFTsData> => {
+  try {
+    const ListNFT = gql`
+      query limit_nft {
+        nfts {
+          tokenURI
+          id
+        }
+      }
+    `;
+    return (await request(endPoint, ListNFT, {}, headers)) as NFTsData;
+  } catch (error) {
+    throw error;
+  }
+};
 export const FetchMarketInfo = async () => {
   try {
     const fetchMarketInfo = gql`

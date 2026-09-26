@@ -25,12 +25,13 @@ class TokenSaleService extends Web3Service {
         }
         return false;
       } catch (error) {
-        console.error(error);
-        return false;
+        console.log(error);
+        throw error;
       }
     }
   }
   async Sell(amount: string) {
+    console.log(ethers.parseEther(amount) + " "  + amount)
     const contract = await this.getContract();
     if (contract != null) {
       try {

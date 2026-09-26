@@ -43,6 +43,10 @@ API_Base.interceptors.response.use(
         await logOut(adr);
         localStorage.removeItem("accessToken");
         if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
+          await window.ethereum.request({
+            method: "wallet_revokePermissions",
+            params: [{ eth_accounts: {} }],
+          });
           window.ethereum.removeAllListeners("accountsChanged");
           window.ethereum.removeAllListeners("chainChanged");
           window.ethereum.removeAllListeners("disconnect");

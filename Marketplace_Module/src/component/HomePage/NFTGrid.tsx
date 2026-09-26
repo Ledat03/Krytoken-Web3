@@ -30,6 +30,7 @@ interface NFTGridProps {
 }
 
 export default function NFTGrid({ filteredNFTs, mapOfNFT, latestSold, isLoadingMore, hasMore, observerRef, onOpenNFTDetail, totalCount }: NFTGridProps) {
+  console.log(filteredNFTs)
   return (
     <>
       {filteredNFTs.length > 0 ? (
@@ -38,10 +39,10 @@ export default function NFTGrid({ filteredNFTs, mapOfNFT, latestSold, isLoadingM
             <div
               key={nft.tokenId}
               onClick={() => onOpenNFTDetail(nft)}
-              className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/20"
+              className="group cursor-pointer overflow-hidden rounded-lg border-2 border-border bg-card transition-all hover:border-primary shadow-[3px_3px_0_#2a3028] hover:shadow-[4px_4px_0_#2a3028] min-w-50 min-h-[300px]"
             >
-              <div className="relative h-50 w-full overflow-hidden bg-background">
-                <img src={nft.image || "/placeholder.svg"} alt={nft.name} className="h-full w-full object-cover transition-transform group-hover:scale-110 scale-90" />
+              <div className="relative w-full overflow-hidden bg-background">
+                <img src={nft.image || "/placeholder.svg"} alt={nft.name} className="h-70 w-70 object-cover transition-transform group-hover:scale-110 scale-90" />
                 {mapOfNFT.get(nft.tokenId.toString())?.isActive && (
                   <div className="absolute left-2 top-2 text-[15px] text-green-400 flex items-center">
                     <GoDotFill className="animate-pulse-live" />

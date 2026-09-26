@@ -32,7 +32,7 @@ export default function Dashboard() {
   const { OrderAddedLoading, refetchOrderAdded } = useQueryOrderAdded();
   const { LoadingMatched, refetchOrderMatched } = useQueryOrderMatched();
   const { LatestSoldLoading, refetchLatestSold } = useQueryLatestSoldData();
-
+  console.log(ListNFTs)
   const onLoad = () => {
     reset();
     refetchMarketInfo();
@@ -176,12 +176,12 @@ export default function Dashboard() {
   }, [ListNFTs, selectedClass, selectedRarity, selectedElement, searchQuery, priceRange, sortBy, mapOfNFT]);
 
   return isInitialLoading ? (
-    <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-black">
+    <div className="flex h-[100vh] w-[100vw] justify-center items-center bg-background">
       <LoadingLayout Loading={isInitialLoading} />
     </div>
   ) : (
-    <div className="dark min-h-screen bg-background w-full">
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="min-h-screen bg-background w-full">
+      <header className="border-b-2 border-border bg-background">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:py-5 sm:px-6 lg:px-8">
           <div className="hidden sm:block relative overflow-hidden rounded-2xl select-none">
             <div className="flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
@@ -191,7 +191,7 @@ export default function Dashboard() {
             </div>
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
               {posters.map((_, idx) => (
-                <button key={idx} onClick={() => goToSlide(idx)} className={`transition-all duration-300 rounded-full ${idx === currentSlide ? "bg-white w-4 h-4 scale-110 shadow-lg" : "bg-white/50 w-3 h-3 hover:bg-white/80"}`} aria-label={`Go to slide ${idx + 1}`} />
+                <button key={idx} onClick={() => goToSlide(idx)} className={`transition-all duration-300 rounded-full border-2 border-[#2a3028] ${idx === currentSlide ? "bg-[#e8a317] w-4 h-4 scale-110" : "bg-[#eef1eb] w-3 h-3 hover:bg-[#e8a317]/60"}`} aria-label={`Go to slide ${idx + 1}`} />
               ))}
             </div>
           </div>
@@ -199,11 +199,11 @@ export default function Dashboard() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
+        <div className="mb-5 flex items-center justify-between gap-3 flex-wrap ">
           <button
             onClick={() => setFilter(!filter)}
             title={filter ? "Hide filters" : "Show filters"}
-            className={`flex items-center justify-center overflow-hidden bg-primary text-primary-foreground border border-primary hover:bg-primary/90 active:scale-95 transition-all duration-300 ease-in-out ${filter ? "w-36 h-10 rounded-xl gap-2 px-4" : "w-10 h-10 rounded-full"}`}
+            className={`header-setting  items-center justify-center overflow-hidden bg-primary text-primary-foreground border border-primary hover:bg-primary/90 active:scale-95 transition-all duration-200 ease-in-out ${filter ? "w-36 h-20 rounded-xl gap-2 px-4" : "w-10 h-10 rounded-full"}`}
           >
             <Sliders className="h-4 w-4 flex-shrink-0" />
             <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${filter ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0"}`}>Filter</span>

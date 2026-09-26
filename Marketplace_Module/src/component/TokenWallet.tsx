@@ -86,7 +86,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
 
   if (!isConnected) {
     return (
-      <div className="dark flex flex-col items-center justify-center p-8 rounded-lg">
+      <div className="flex flex-col items-center justify-center p-8 rounded-lg comic-panel bg-card">
         <Wallet className="w-16 h-16 mb-4" />
         <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
         <p className="text-center mb-4">Connect your wallet to interact with smart contracts and manage your tokens.</p>
@@ -99,7 +99,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
 
   return (
     <div className="space-y-6 w-full overflow-y-auto">
-      <div className="dark p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg comic-panel bg-card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">Wallet Information</h2>
           <Button onClick={connectWallet} disabled={loading} variant="outline" size="sm">
@@ -129,7 +129,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
         )}
       </div>
 
-      <div className="dark p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg comic-panel bg-card">
         <h3 className="text-lg font-semibold mb-4">Token Balances</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 rounded-md">
@@ -154,7 +154,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
         )}
       </div>
 
-      <div className="dark p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg comic-panel bg-card">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Send className="w-5 h-5 mr-2" />
           Transfer Tokens
@@ -178,7 +178,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
         </div>
       </div>
 
-      <div className="dark p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg comic-panel bg-card">
         <h3 className="text-lg font-semibold mb-4">Approve Tokens</h3>
         <div className="space-y-4">
           <div>

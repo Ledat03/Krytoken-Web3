@@ -25,6 +25,14 @@ import { unauthorizeUser, type TokenInfo } from "@/redux/slice/sliceInfoToken";
 import { ethers } from "ethers";
 import { DropdownMenuLabel } from "@radix-ui/react-dropdown-menu";
 import { useAddressPermission } from "@/service/QueryService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 const WalletConnect = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { connectWallet, getSignature, approveTokens, error, switchAccount } =
@@ -46,38 +54,50 @@ const WalletConnect = () => {
   const UserData: UserInfo = useSelector(
     (state: RootState) => state.identifyAddress,
   );
+  const PermissionState: Permission | null = useSelector(
+    (state: RootState) => state.Permission.data,
+  );
   const [sepoliaBalance, setBalance] = useState<string>("");
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
+  const saleAddr = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS
   const { pmsData, isLoading, refetch, status } = useAddressPermission(account);
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
-    console.log(res);
     setAccounts(res);
     if (res) {
       const WalletConnect: boolean = res.length > 0 ? true : false;
-      console.log("wallet connect", WalletConnect);
       if (WalletConnect && UserData.nonce === 0) {
         await FetchInfoWallet();
       }
     }
   };
-  console.log(Loading);
+  const [DialogState, setDialog] = useState(false);
   useEffect(() => {
     checkConnect();
     if (error) {
       toast.error(error, { duration: 3000 });
     }
     if (UserData.nonce !== 0 && UserData.isAddressValid == false) {
-      console.log("run api");
       IdentifyUser();
+    }
+
+    if (account !== "" && UserData.isAddressValid) {
+      if (
+        pmsData === undefined &&
+        PermissionState !== null &&
+        (PermissionState.tokenAllowance === 0 ||
+          PermissionState.nftAllowanceAll === false)
+      ) {
+        setDialog(true);
+      }
     }
     if (Web3.getProvider() === null || Web3.getSigner() === null) {
       Web3.initCreate();
     } else {
       fetchBalance();
     }
-  }, [isConnected, error, UserData.nonce]);
+  }, [isConnected, error, UserData.nonce, UserData.isAddressValid, pmsData]);
   const fetchBalance = async () => {
     const provider = Web3.getProvider();
     const signer = Web3.getSigner();
@@ -88,20 +108,19 @@ const WalletConnect = () => {
   };
   const FetchInfoWallet = async () => {
     try {
-      const address = await connectWallet();
+      await connectWallet();
     } catch (error) {
-      console.log(error);
+      toast.error("Failed to connect wallet");
+      throw error;
     }
   };
   const SwitchAccount = async () => {
-    console.log("switch");
     if (!window.ethereum) return;
     await window.ethereum.request({
       method: "wallet_requestPermissions",
       params: [{ eth_accounts: {} }],
     });
     await switchAccount();
-    await refetch();
   };
 
   const DisconnectWallet = async () => {
@@ -120,98 +139,174 @@ const WalletConnect = () => {
     }, 2000);
   };
   const approvePermissions = async () => {
-    setLoading(true);
+    const idLoad = toast.loading("Transaction on progress...");
+    if (!account) {
+      toast.error("Metamask isn't connected !");
+      return;
+    }
     try {
+      let currentPmsData = pmsData;
+      if (currentPmsData === undefined) {
+        const result = await refetch();
+        currentPmsData = result.data;
+
+        if (!currentPmsData) {
+          toast.error("Can't fetch data");
+          return;
+        }
+      }
       const permissionData: Permission = {
         address: account,
         tokenAllowance: 0,
         nftAllowanceAll: false,
       };
-      let isApproved: boolean = false;
-      let isApprovedNFT: boolean = false;
-      if (pmsData !== undefined && pmsData.kryptosApprovals.length === 0) {
-        isApproved = await approveTokens(marketAdr, "100000");
+
+      let isApprovedToken = false;
+      let isApprovedNFT = false;
+      if (currentPmsData.kryptosApprovals?.length === 0) {
+        isApprovedToken = await approveTokens(saleAddr, "100000");
       } else {
-        isApproved = true;
+        isApprovedToken = true;
       }
-      if (pmsData !== undefined && pmsData.approvalForAlls.length === 0) {
+
+      if (currentPmsData.approvalForAlls?.length === 0) {
         isApprovedNFT = await setApprovalForAll(marketAdr, true);
       } else {
         isApprovedNFT = true;
       }
+      console.log(isApprovedNFT + " " + isApprovedToken);
+      if (isApprovedToken || isApprovedNFT) {
+        permissionData.tokenAllowance = isApprovedToken ? 100000 : 0;
+        permissionData.nftAllowanceAll = isApprovedNFT;
+        await dispatch(savePermission(permissionData));
+        toast.success("Permission Allowed Successfully !");
+      }
 
-      console.log(permissionData);
-      console.log(isApproved + " " + isApprovedNFT);
-      if (isApproved || isApprovedNFT)
-        permissionData.tokenAllowance = isApproved ? 100000 : 0;
-      permissionData.nftAllowanceAll = isApprovedNFT ? true : false;
-      await dispatch(savePermission(permissionData));
-      if (!isApproved) {
-        toast.warning("You have to allow token permission to trade in market.");
+      if (!isApprovedToken) {
+        toast.warning("You need allow token permission to trade on market");
       }
       if (!isApprovedNFT) {
-        toast.warning(
-          "You have to allow nfts access permission to trade in market !",
-        );
+        toast.warning("You need allow nft permission to trade on market");
       }
     } catch (error: any) {
-      if (error?.code === 4001) {
-        toast.error("Transaction canceled !");
+      console.error("approvePermissions error:", error);
+
+      if (error?.code === 4001 || error?.code === "ACTION_REJECTED") {
+        toast.error("Transaction Canceled !");
+      } else {
+        toast.error(
+          error?.shortMessage || error?.message || "something went wrong !",
+        );
       }
     } finally {
-      refetch();
-      setLoading(false);
+      await refetch();
+      toast.dismiss(idLoad);
     }
   };
   const IdentifyUser = async () => {
-    await Web3.connectWallet();
-    const signer = Web3.getSigner();
-    if (account && UserData.nonce !== 0 && signer !== null) {
+    try {
+      await Web3.connectWallet();
+      const signer = Web3.getSigner();
+      if (!account || UserData.nonce === 0 || !signer) {
+        return;
+      }
       const signature = await getSignature(UserData.nonce.toString(), signer);
-      const Info = {
+      const info = {
         nonce: UserData.nonce,
         address: signer.address,
-        signature: signature,
+        signature,
       };
-      const data = await dispatch(checkSignature(Info));
-      if (data.meta.requestStatus === "fulfilled") {
-        const isVerified: boolean = data.payload.verified;
-        if (account !== "" && isVerified) {
-          const permissionData = await dispatch(fetchPermission(account));
-          if (
-            (pmsData === undefined &&
-              permissionData.payload.tokenAllowance === 0) ||
-            permissionData.payload.nftAllowanceAll === false
-          ) {
-            await approvePermissions();
-          }
-        }
+      const result = await dispatch(checkSignature(info));
+      if (result.meta.requestStatus !== "fulfilled") {
+        toast.error("Unauthorized !");
+        return;
+      }
+      const permissionResult = await dispatch(fetchPermission(account));
+      if (permissionResult.meta.requestStatus !== "fulfilled") {
+        return;
+      }
+    } catch (error: any) {
+      console.error("IdentifyUser error:", error);
+
+      if (error?.code === 4001 || error?.code === "ACTION_REJECTED") {
+        toast.error("Transaction Canceled !");
+      } else {
+        toast.error("Something went wrong !");
       }
     }
-    return;
   };
   const start = account.substring(0, 4);
   const end = account.substring(account.length, account.length - 4);
-  console.log(pmsData);
-  if (Loading) {
-    toast.message("Loading...");
-  }
+
   return (
     <>
       {pmsData !== undefined &&
         (pmsData.approvalForAlls?.length === 0 ||
           pmsData.kryptosApprovals?.length === 0) && (
           <div className="">
-            <p>
-              You need to allow permission to use this market{" "}
-              <button onClick={() => approvePermissions()}>Sign</button>
+            <p className="cookie-text text-xl">
+              Allow permission to use this market{" "}
+              <button type="button" className="btn-game cookie-text text-[17px]" onClick={() => setDialog(true)}>Sign</button>
             </p>
+            <div className="absolute">
+              <Dialog open={DialogState} onOpenChange={() => setDialog(false)}>
+                <DialogContent className="comic-panel text-foreground border-[#2a3028]">
+                  <DialogHeader>
+                    <DialogTitle>Grant Marketplace Permissions</DialogTitle>
+                    <DialogDescription>
+                      To trade NFTs on this marketplace, you need to grant the
+                      following permissions:
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 text-sm">
+                    <div className="rounded-md border p-3">
+                      <p className="font-medium">1. Approve Token (KYS)</p>
+                      <p className="text-muted-foreground mt-1">
+                        Allow the Marketplace contract to spend your KYS tokens
+                        so you can pay for NFTs when purchasing.
+                      </p>
+                    </div>
+
+                    <div className="rounded-md border p-3">
+                      <p className="font-medium">2. Approve NFT</p>
+                      <p className="text-muted-foreground mt-1">
+                        Allow the Marketplace contract to manage your NFTs so
+                        you can list and sell them.
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      You can revoke these permissions at any time in MetaMask.
+                    </p>
+                  </div>
+                  <DialogFooter>
+                    <button
+                      type="button"
+                      className="btn-game"
+                      onClick={() => setDialog(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-game"
+                      onClick={() => approvePermissions()}
+                    >
+                      Sign
+                    </button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         )}
+
       {PermissionAccount == undefined ||
       PermissionAccount.length === 0 ||
       account === undefined ? (
         <button
+          type="button"
+          className="btn-game"
           onClick={() => {
             FetchInfoWallet();
           }}
@@ -220,17 +315,19 @@ const WalletConnect = () => {
         </button>
       ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative">
-            <p>
-              <LuCircleUser
-                size={30}
-                className=" absolute left-[-35px] top-[-5px]"
-              />
-              {start}...{end}
-            </p>
+          <DropdownMenuTrigger className="">
+            {account && (
+              <div className="drop-header">
+                <LuCircleUser
+                  size={30}
+                  className=""
+                />
+                <p>{start}...{end}</p>
+              </div>
+            )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="dark w-[300px]">
-            <DropdownMenuLabel className="py-[10px] px-[10px]">
+          <DropdownMenuContent className="comic-panel w-75 bg-card border-2 border-[#2a3028]">
+            <DropdownMenuLabel className="py-2.5 px-2.5 flex justify-center items-center gap-1">
               <p className=" text-sm">Wallet Connected :</p>
               <p>
                 {start}...{end}
@@ -260,7 +357,7 @@ const WalletConnect = () => {
                 <a href="/home/market/configuration">Market Setting</a>
               </DropdownMenuItem>
             )}
-            <DropdownMenuSeparator />
+            
             <DropdownMenuItem className="header-setting">
               <a href="/home/nft/manage">Manage NFT</a>
             </DropdownMenuItem>

@@ -13,7 +13,6 @@ export const fetchInfoUser = createAsyncThunk("user/fetchInfoUser", async (addre
   const res = await Verify(address);
   console.log("res data : ", res);
   if (res.status == 200) {
-    
     localStorage.setItem("accessToken", res.data.accessToken);
   }
   return res.data;

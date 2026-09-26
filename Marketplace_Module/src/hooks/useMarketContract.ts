@@ -2,6 +2,7 @@
 import { marketService } from "@/service/MarketplaceService";
 import { ethers } from "ethers";
 import { useCallback } from "react";
+import { fa } from "zod/v4/locales";
 
 export const useMarketContract = () => {
   const connectMarket = useCallback(async () => {
@@ -74,6 +75,7 @@ export const useMarketContract = () => {
         const response = await marketService.cancelOrder(orderId);
         return response;
       }
+      return false;
     } catch (error) {
       throw error;
     }

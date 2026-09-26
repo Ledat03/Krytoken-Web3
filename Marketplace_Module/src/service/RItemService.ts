@@ -39,7 +39,10 @@ class NFTService extends Web3Service {
     }
     return null;
   }
-  async mintWithURI(tokenURL: string, address: string): Promise<boolean | undefined> {
+  async mintWithURI(
+    tokenURL: string,
+    address: string,
+  ): Promise<boolean | undefined> {
     const contract = await this.getContractNFT();
     const owner: string | null = await this.getOwner();
     console.log("owner ", owner);
@@ -98,12 +101,15 @@ class NFTService extends Web3Service {
     }
     return false;
   }
-  async setApprovalForAll(address: string, isApproved: boolean): Promise<boolean> {
+  async setApprovalForAll(
+    address: string,
+    isApproved: boolean,
+  ): Promise<boolean> {
     const resContract = await this.getContractNFT();
     if (resContract) {
       try {
         const tx = await resContract.setApprovalForAll(address, isApproved);
-        const result = tx.wait();
+        const result = await tx.wait();
         if (result.status == 1) return true;
       } catch (error) {
         console.error(error);
@@ -112,7 +118,11 @@ class NFTService extends Web3Service {
     }
     return false;
   }
-  async transferFrom(from: string, to: string, tokenId: number): Promise<boolean> {
+  async transferFrom(
+    from: string,
+    to: string,
+    tokenId: number,
+  ): Promise<boolean> {
     const resContract = await this.getContractNFT();
 
     if (resContract) {
@@ -153,13 +163,13 @@ class NFTService extends Web3Service {
     return null;
   }
 
-  async getOwnerOf(tokenId: number): Promise<string | null> {
+  async getOwnerOf(tokenId: number): Promise<string> {
     const resContract = await this.getContractNFT();
     if (resContract) {
       const res: string = await resContract.ownerOf(tokenId);
       return res;
     }
-    return null;
+    return "";
   }
   async getTokenURI(tokenId: number): Promise<string | null> {
     const resContract = await this.getContractNFT();

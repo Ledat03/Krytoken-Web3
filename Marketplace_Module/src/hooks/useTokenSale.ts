@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import { useCallback } from "react";
 import { ethers } from "ethers";
 import { tokenSaleService } from "../service/TokenSaleService";
@@ -12,11 +13,9 @@ const useTokenSale = () => {
     try {
       const result = await tokenSaleService.Buy(amount);
       if (result) {
-        toast.success("Tokens purchased successfully!");
         return result;
       }
     } catch (error) {
-      toast.error("Failed to purchase tokens");
       throw error;
     }
     return false;

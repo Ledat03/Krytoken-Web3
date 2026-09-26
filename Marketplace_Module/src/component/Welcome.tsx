@@ -79,7 +79,7 @@ const WelcomePage = () => {
               <div className="hidden md:block">
                 <a href="/home">
                   {" "}
-                  <Button variant="default" size="default" className="rounded-full bg-yellow-900 cookie-text text-xl" data-testid="button-join-huddle">
+                  <Button variant="default" size="default" className="rounded-full bg-yellow-900 cookie-text text-xl text-white" data-testid="button-join-huddle">
                     Let's Make Cookies
                   </Button>
                 </a>
@@ -117,7 +117,7 @@ const WelcomePage = () => {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="/home">
-                  <Button size="lg" variant="default" className="rounded-full font-semibold bg-yellow-900 cookie-text text-2xl">
+                  <Button size="lg" variant="default" className="rounded-full font-semibold bg-yellow-900 cookie-text text-2xl text-white">
                     Explore Collection
                   </Button>
                 </a>
@@ -185,7 +185,7 @@ const WelcomePage = () => {
                       <img src={Loading01} alt="Exclusive Cookie" className=" object-cover  w-[300px] h-[250px] " />
                     </div>
                     <div className="flex justify-between items-center ">
-                      <img src={Exclusive02} alt="Exclusive Cookie" className="w-[250px] h-[250px] object-cover rounded-[100px]" />
+                      <img src={Exclusive02} alt="Exclusive Cookie" className="w-[250px] h-62.5 object-cover rounded-[100px]" />
                       <span className="cookie-text text-4xl text-amber-50">Silent Salt Cookie</span>
                       <img src={Loading02} alt="Exclusive Cookie" className=" object-cover  w-[300px] h-[250px] " />
                     </div>

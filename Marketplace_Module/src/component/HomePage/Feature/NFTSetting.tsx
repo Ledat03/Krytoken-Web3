@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,9 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
     address: "",
     tokenId: 0,
   });
-  const MarketAddress: string = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
+  const MarketAddress: string = import.meta.env
+    .VITE_Marketplace_CONTRACT_ADDRESS;
 
-  console.log(data);
   const dispatch = useDispatch<AppDispatch>();
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const deployer = import.meta.env.VITE_DEPLOYER;
@@ -66,8 +67,10 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
           }),
         {
           loading: "Confirm Approve...",
-          success: () => `Approved permission for ${address.substring(0, 4)}...${address.substring(address.length, address.length - 4)}`,
-          error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
+          success: () =>
+            `Approved permission for ${address.substring(0, 4)}...${address.substring(address.length, address.length - 4)}`,
+          error: (err) =>
+            err?.shortMessage ?? err?.message ?? "Failed to update base URI",
         },
       );
     } catch (error) {
@@ -80,120 +83,145 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
     getBaseURI();
   }, [Loading]);
   return (
-    <div className="flex flex-col justify-center items-start w-fit gap-3 px-10">
-      {data?.nftAllowanceAll && (
-        <div className="flex gap-3 items-center justify-center border border-green-500 rounded-lg p-2 w-full">
-          <span className="text-green-500">You have already approved permission for all NFTs</span>
-        </div>
-      )}
-      {signer === deployer && (
-        <>
-          <div className="my-2">
-            <div className="flex gap-3 items-center justify-start">
-              <span>Base URI</span>
-              <Input
-                className="w-[280px]"
-                placeholder={`Your current base URI : ${URI}`}
-                onChange={(e) => {
-                  setTemp(e.target.value);
-                }}
-              />
-              <Button
-                type="button"
-                onClick={() => {
-                  try {
-                    setLoading(true);
-                    toast.promise(
-                      changeURI(tempURI).then((receipt) => {
-                        getBaseURI();
-                        return receipt;
-                      }),
-                      {
-                        loading: "Updating base URI...",
-                        success: () => `Base URI updated. ${URI}`,
-                        error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-                      },
-                    );
-                  } catch (error) {
-                    throw error;
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                Change
-              </Button>
-            </div>
-            <span className="text-green-500">This is the base URI where you store your NFT metadata</span>
+    <div className="flex flex-col justify-center items-center w-full gap-3 px-10 bg-[#eef1eb] border border-black">
+      <div><p className="cookie-text text-3xl">MANAGE NFT</p></div>
+      <div className="comic-coin-box p-5">
+        {data?.nftAllowanceAll && (
+          <div className="flex gap-3 items-center justify-center border border-green-500 rounded-lg p-2 w-full">
+            <span className="text-green-500">
+              You have already approved permission for all NFTs
+            </span>
+          </div>
+        )}
+        {signer === deployer && (
+          <>
+            <div className="my-2">
+              <div className="flex gap-3 items-center justify-start ">
+                <span>Base URI</span>
+                <Input
+                  className="w-[280px]"
+                  placeholder={`Your current base URI : ${URI}`}
+                  onChange={(e) => {
+                    setTemp(e.target.value);
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      setLoading(true);
+                      toast.promise(
+                        changeURI(tempURI).then((receipt) => {
+                          getBaseURI();
+                          return receipt;
+                        }),
+                        {
+                          loading: "Updating base URI...",
+                          success: () => `Base URI updated. ${URI}`,
+                          error: (err) =>
+                            err?.shortMessage ??
+                            err?.message ??
+                            "Failed to update base URI",
+                        },
+                      );
+                    } catch (error) {
+                      throw error;
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  Change
+                </Button>
+              </div>
+              <span className="text-green-500">
+                This is the base URI where you store your NFT metadata
+              </span>
+            </div>{" "}
+          </>
+        )}
+
+        <div className="my-2">
+          <div className="flex gap-3 items-center ">
+            <span className=" text-base font-bold">Approval</span>
+            <Input
+              className="w-[400px]"
+              placeholder={`E.g : 0xAbdc`}
+              onChange={(e) => {
+                setApprove({ ...approveAddress, address: e.target.value });
+              }}
+            />
+            <Input
+              className="w-[100px]"
+              type="number"
+              placeholder={`Token ID`}
+              onChange={(e) => {
+                setApprove({
+                  ...approveAddress,
+                  tokenId: Number(e.target.value),
+                });
+              }}
+            />
+
+            <Button
+              type="button"
+              onClick={() => {
+                try {
+                  toast.promise(
+                    approve(
+                      approveAddress.address,
+                      approveAddress.tokenId,
+                    ).then((receipt) => {
+                      return receipt;
+                    }),
+                    {
+                      loading: "Confirm Approve...",
+                      success: () =>
+                        `Approved permission for ${approveAddress.address.substring(0, 4)}...${approveAddress.address.substring(approveAddress.address.length, approveAddress.address.length - 4)}`,
+                      error: (err) =>
+                        err?.shortMessage ??
+                        err?.message ??
+                        "Failed to update base URI",
+                    },
+                  );
+                } catch (error) {
+                  throw error;
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              Approve
+            </Button>
           </div>{" "}
-        </>
-      )}
-
-      <div className="my-2">
-        <div className="flex gap-3 items-center">
-          <span>Approval</span>
-          <Input
-            className="w-[400px]"
-            placeholder={`E.g : 0xAbdc`}
-            onChange={(e) => {
-              setApprove({ ...approveAddress, address: e.target.value });
-            }}
-          />
-          <Input
-            className="w-[100px]"
-            type="number"
-            placeholder={`Token ID`}
-            onChange={(e) => {
-              setApprove({ ...approveAddress, tokenId: Number(e.target.value) });
-            }}
-          />
-
-          <Button
-            type="button"
-            onClick={() => {
-              try {
-                toast.promise(
-                  approve(approveAddress.address, approveAddress.tokenId).then((receipt) => {
-                    return receipt;
-                  }),
-                  {
-                    loading: "Confirm Approve...",
-                    success: () => `Approved permission for ${approveAddress.address.substring(0, 4)}...${approveAddress.address.substring(approveAddress.address.length, approveAddress.address.length - 4)}`,
-                    error: (err) => err?.shortMessage ?? err?.message ?? "Failed to update base URI",
-                  },
-                );
-              } catch (error) {
-                throw error;
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            Approve
-          </Button>
-        </div>{" "}
-        <span className="text-green-500">Fill address you want to allow permission to manage NFT </span>
-      </div>
-      <div>
-        <div className="flex gap-3 items-center">
-          <span className="text-md font-bold">Approval All</span>
-          <Input
-            className="w-[400px]"
-            placeholder={`E.g : 0xAbcd`}
-            onChange={(e) => {
-              setAddress(e.target.value);
-            }}
-          />
-          <Button
-            type="button"
-            onClick={async () => {
-              await setApproveAll();
-            }}
-          >
-            {Loading ? "Approving..." : "Approve"}
-          </Button>
+          <span className="text-muted-foreground">
+            Notice : Fill address you want to allow permission to manage
+            NFT{" "}
+          </span>
         </div>
-        <span className="text-green-500">Fill address you want to allow all permission to manage NFT </span>
+        <div>
+          <div className="flex gap-3 items-center">
+            <span className="text-md font-bold">Approval All</span>
+            <Input
+              className="w-[400px]"
+              placeholder={`E.g : 0xAbcd`}
+              onChange={(e) => {
+                setAddress(e.target.value);
+              }}
+            />
+            <Button
+              type="button"
+              onClick={async () => {
+                await setApproveAll();
+              }}
+            >
+              {Loading ? "Approving..." : "Approve"}
+            </Button>
+          </div>
+          <span className="text-muted-foreground">
+            Notice : Fill address you want to allow all permission to manage NFT{" "}
+          </span>
+        </div>
       </div>
     </div>
   );

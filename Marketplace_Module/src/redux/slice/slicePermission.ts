@@ -35,7 +35,6 @@ export const fetchPermission = createAsyncThunk("/fetch/permission", async (addr
   }
   try {
     const response = await getPermission(address);
-    console.log(response);
     return response.data;
   } catch (error) {
     throw error;
@@ -56,8 +55,9 @@ const StatePermission = createSlice({
       state.loading = true;
       state.error = null;
     });
-    builder.addCase(savePermission.fulfilled, (state) => {
+    builder.addCase(savePermission.fulfilled, (state,action) => {
       state.loading = false;
+      state.data = action.payload;
     });
     builder.addCase(savePermission.rejected, (state, action) => {
       state.loading = false;

@@ -15,7 +15,7 @@ export default function NFTCard({ nft, signer,listed}: { nft: NFTProperty; signe
   const OrderData: IListOrder = useSelector((state: RootState) => state.orderAdded);
   const infoMarket = useSelector((state: RootState) => state.marketInfo.feeUpdateds);
   const {} = useQueryMarketInfo();
-  const { OrderAddedStatus } = useQueryOrderAdded();
+  const { OrderAddedStatus,refetchOrderAdded } = useQueryOrderAdded();
   const { StatusMatched } = useQueryOrderMatched();
   useEffect(() => {
     fetchOwner(nft.tokenId);
@@ -25,6 +25,7 @@ export default function NFTCard({ nft, signer,listed}: { nft: NFTProperty; signe
     OpenDetail: false,
     OpenSale: false,
   });
+  console.log(listed)
   const token = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
   const [formSale, setForm] = useState({ tokenTransfer: token, tokenId: nft.tokenId, price: 0 });
   const closeDetail = () => setOpen((prev) => ({ ...prev, OpenDetail: false }));
@@ -45,12 +46,12 @@ console.log(listed)
             e.stopPropagation();
             setOpen((prev) => ({ ...prev, OpenDetail: true }));
           }}
-          className="dark bg-card border-border hover:border-primary/50 transition-all duration-300 overflow-hidden group cursor-pointer w-[250px] m-h-[500px] py-0"
+          className="comic-panel bg-card border-border hover:border-primary transition-all duration-300 overflow-hidden group cursor-pointer w-[250px] m-h-[500px] py-0 !shadow-[4px_4px_0_#2a3028]"
         >
           <CardContent className="p-0">
             <div className="relative aspect-square overflow-hidden bg-muted">
               <img src={nft.image} alt="image" className="object-cover group-hover:scale-110 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-[#2a3028]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
           </CardContent>
 
@@ -59,16 +60,14 @@ console.log(listed)
               <div>
                 <h3 className="font-semibold text-foreground text-[15px] mb-1 text-balance cookie-text">{nft.name}</h3>
                 <p className="text-xs text-muted-foreground">Token ID: #{nft.tokenId.toString().padStart(4, "0")}</p>
-                <p className="text-xs text-muted-foreground">
-                  Owner: {owner.substring(0, 4)}...{owner.substring(owner.length, owner.length - 4)}
-                </p>
+                {listed && listed.isListing  && <p className="cookie-text text-green-400 w-max">Listed On Market</p>}
               </div>
               <div>
                 <img src={images[nft.trait.rarity]} alt="" className="w-[100px]" />
               </div>
             </div>
             {
-             listed != undefined ? <div className="w-full flex items-center justify-between pt-2 border-t border-border">
+             listed != undefined && listed.isListing ? <div className="w-full flex items-center justify-between pt-2 border-t border-border">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Current Price</p>
                 <p className="font-bold text-primary text-lg cookie-text">{formatBalance(listed.price.toString())} KYS</p>
@@ -80,7 +79,7 @@ console.log(listed)
             <span className=" self-center text-muted-foreground text-[14px] opacity-0 group-hover:opacity-100">Click to see more detail </span>
           </CardFooter>
         </Card>
-        {Open.OpenDetail && <NFTDetailDialog nft={nft} isOpen={Open.OpenDetail} onClose={() => closeDetail()} signer={signer} feeRate={infoMarket} ListOrder={OrderData} />}
+        {Open.OpenDetail && <NFTDetailDialog nft={nft} isOpen={Open.OpenDetail} onClose={() => closeDetail()} signer={signer} feeRate={infoMarket} ListOrder={OrderData} reload={refetchOrderAdded} />}
       </>
     );
   }

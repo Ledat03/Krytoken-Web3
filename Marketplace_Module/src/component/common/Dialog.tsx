@@ -1,4 +1,12 @@
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-useless-catch */
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { NFTProperty } from "@/redux/slice/sliceNFTs";
 import { RiDoubleQuotesL, RiDoubleQuotesR } from "react-icons/ri";
@@ -18,6 +26,8 @@ import { LoadingLayout } from "./Loading";
 import { toast } from "sonner";
 import { getPermission } from "@/service/MainService";
 import { formatBalance } from "@/utils/common";
+import { useAddressPermission } from "@/service/QueryService";
+import { set } from "date-fns";
 interface NFTDetailDialogProps {
   nft: NFTProperty | null;
   isOpen: boolean;
@@ -34,9 +44,28 @@ interface MatchedNFT {
   status: boolean;
   orderId: number;
 }
-export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate, ListOrder, latestSold, reload }: NFTDetailDialogProps) {
-  const { connectMarket, createOffer, getOffers, acceptOffer, executeOrder, cancelOffer, addOrder, cancelOrder } = useMarketContract();
+export default function NFTDetailDialog({
+  nft,
+  isOpen,
+  onClose,
+  signer,
+  feeRate,
+  ListOrder,
+  latestSold,
+  reload,
+}: NFTDetailDialogProps) {
+  const {
+    connectMarket,
+    createOffer,
+    getOffers,
+    acceptOffer,
+    executeOrder,
+    cancelOffer,
+    addOrder,
+    cancelOrder,
+  } = useMarketContract();
   const { getOwnerOf } = useNFTContract();
+  const { pmsData } = useAddressPermission(signer);
   const KYSToken: string = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
   const [Loading, setLoading] = useState<boolean>(true);
   const [refetch, setFetch] = useState<boolean>(false);
@@ -47,17 +76,30 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     contractAddress: "",
     ownerAddress: "",
   });
-
+const validationMessage = useMemo(() => {
+  if(OrderPrice > 10000000) return "Price doesn't exceed 10000000 KYS";
+  if(OrderPrice === 0) return "fill the price for your NFT"
+  return "";
+},[OrderPrice])
   const [History, setHistory] = useState<ListSale>();
   const isOwner = useMemo(() => {
     const map = new Map<string, MatchedNFT>();
     ListOrder.listings?.forEach((item) => {
       const formatPrice = ethers.formatUnits(item.price.toString());
-      map.set(item.tokenId.toString(), { owner: item.owner, price: formatPrice, status: item.isListing, orderId: item.orderId });
+      map.set(item.tokenId.toString(), {
+        owner: item.owner,
+        price: formatPrice,
+        status: item.isListing,
+        orderId: item.orderId,
+      });
     });
     return map;
   }, [ListOrder.listings]);
-  const [SelectedOffer, setOffer] = useState({ indexNFT: 0, tokenId: nft?.tokenId, price: 0 });
+  const [SelectedOffer, setOffer] = useState({
+    indexNFT: 0,
+    tokenId: nft?.tokenId,
+    price: 0,
+  });
   const [SelectedOrder, setOrder] = useState<number>(0);
 
   const [show, setShow] = useState({
@@ -68,8 +110,10 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     showCancelOffer: false,
     showHistory: false,
   });
-  const CloseConfirm = () => setShow((prev) => ({ ...prev, showConfirmOffer: false }));
-  const CloseCancel = () => setShow((prev) => ({ ...prev, showCancelOffer: false }));
+  const CloseConfirm = () =>
+    setShow((prev) => ({ ...prev, showConfirmOffer: false }));
+  const CloseCancel = () =>
+    setShow((prev) => ({ ...prev, showCancelOffer: false }));
 
   const queryHistory = async () => {
     if (nft) {
@@ -83,7 +127,9 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     setLoading(true);
     try {
       await getContract();
-      const order = ListOrder.listings?.find((item) => item?.tokenId === nft?.tokenId);
+      const order = ListOrder.listings?.find(
+        (item) => item?.tokenId === nft?.tokenId,
+      );
       if (order) setOrder(order.orderId);
       if (nft) {
         await queryHistory();
@@ -99,10 +145,11 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       setLoading(true);
       return;
     }
-    if (refetch === false) loadData();
+    loadData();
     if (signer) {
       getPermission(signer);
     }
+    setFetch(false);
   }, [nft, isOpen, refetch]);
   const getContract = async () => {
     setLoading(true);
@@ -154,14 +201,12 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     const order = isOwner.get(nft.tokenId.toString());
     if (order) {
       toast.promise(
-        cancelOrder(order.orderId).then((res) => {
-          if (res) {
-            onClose();
-            reload();
-          }
-          return res;
-        }),
-        { loading: "Processing...", success: "Your order has already canceled !", error: "Transaction Revert !" },
+        cancelOrder(order.orderId).then(() => reload()),
+        {
+          loading: "Processing...",
+          success: "Your order has already canceled !",
+          error: "Transaction Revert !",
+        },
       );
     }
   };
@@ -174,16 +219,22 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
         }
         return res;
       }),
-      { loading: "Processing...", success: "Cancel offer success !", error: "Transaction Revert !" },
+      {
+        loading: "Processing...",
+        success: "Cancel offer success !",
+        error: "Transaction Revert !",
+      },
     );
   };
   const addOffer = async () => {
     try {
-      setFetch(true);
       toast.promise(
         createOffer(OfferPrice, KYSToken, Number(nft?.tokenId)).then((res) => {
-          setFetch(false);
-          setShow((prev) => ({ ...prev, showAddOffer: false, showOffer: false }));
+          setShow((prev) => ({
+            ...prev,
+            showAddOffer: false,
+            showOffer: false,
+          }));
           setPrice(0);
           return res;
         }),
@@ -196,15 +247,13 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     } catch (error) {
       throw error;
     } finally {
-      reload();
+      await reload();
     }
   };
   const handleAddOrder = async (nft: NFTProperty) => {
     try {
-      setFetch(true);
       toast.promise(
         addOrder(nft.tokenId, OrderPrice, KYSToken).then((res) => {
-          setFetch(false);
           return res;
         }),
         {
@@ -224,7 +273,9 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
   const confirmOffered = async (tokenId: number, index: number) => {
     try {
       await acceptOffer(tokenId, index);
-      toast.success("Offer is accepted,You need to wait for the transaction to be done");
+      toast.success(
+        "Offer is accepted,You need to wait for the transaction to be done",
+      );
     } catch (error) {
       toast.error(error instanceof String ? error : "Error in accept offer");
       throw error;
@@ -238,11 +289,18 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     if (count.length > 0) {
       return count.map((item: any, index: any) => {
         return (
-          <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
+          <li
+            className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground"
+            key={index}
+          >
             <div className="flex flex-col">
               <span className="text-[12px]">Address</span>
               <span className="text-[14px]">
-                {item?.buyer.substring(0, 4)}...{item?.buyer.substring(item?.buyer.length, item?.buyer.length - 4)}
+                {item?.buyer.substring(0, 4)}...
+                {item?.buyer.substring(
+                  item?.buyer.length,
+                  item?.buyer.length - 4,
+                )}
               </span>
             </div>
             <div className="flex flex-col">
@@ -253,7 +311,11 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
               <Button
                 onClick={() => {
                   setShow((prev) => ({ ...prev, showCancelOffer: true }));
-                  setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item?.index), price: item?.price }));
+                  setOffer(() => ({
+                    tokenId: nft?.tokenId,
+                    indexNFT: Number(item?.index),
+                    price: item?.price,
+                  }));
                 }}
               >
                 Cancel
@@ -263,7 +325,11 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                 disabled={signer !== Address.ownerAddress}
                 onClick={() => {
                   setShow((prev) => ({ ...prev, showConfirmOffer: true }));
-                  setOffer(() => ({ tokenId: nft?.tokenId, indexNFT: Number(item.index), price: item?.price }));
+                  setOffer(() => ({
+                    tokenId: nft?.tokenId,
+                    indexNFT: Number(item.index),
+                    price: item?.price,
+                  }));
                 }}
               >
                 Accept Offer
@@ -285,7 +351,7 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     if (show.showConfirmOffer) {
       return (
         <Dialog open={show.showConfirmOffer} onOpenChange={CloseConfirm}>
-          <DialogContent className="dark text-white">
+          <DialogContent className="comic-panel text-foreground bg-card">
             <DialogHeader>
               <DialogTitle>Confirm Offer </DialogTitle>
             </DialogHeader>
@@ -293,15 +359,32 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
               <span>You cancel offer NFT with tokenId : #00{nft?.tokenId}</span>
               <span>Offer Price : {SelectedOffer.price}</span>
               <span>
-                Market Fee ({feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal))}% ) : {SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS
+                Market Fee (
+                {feeRate[0].feeRate /
+                  10 ** (2 + Number(feeRate[0].feeByDecimal))}
+                % ) :{" "}
+                {SelectedOffer.price *
+                  (feeRate[0].feeRate /
+                    10 ** (2 + Number(feeRate[0].feeByDecimal)))}{" "}
+                KYS
               </span>
-              <span>You will receive :{SelectedOffer.price - SelectedOffer.price * (feeRate[0].feeRate / 10 ** (2 + Number(feeRate[0].feeByDecimal)))} KYS</span>
+              <span>
+                You will receive :
+                {SelectedOffer.price -
+                  SelectedOffer.price *
+                    (feeRate[0].feeRate /
+                      10 ** (2 + Number(feeRate[0].feeByDecimal)))}{" "}
+                KYS
+              </span>
             </div>
             <DialogFooter>
               <Button
                 onClick={async () => {
                   try {
-                    await confirmOffered(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                    await confirmOffered(
+                      Number(SelectedOffer.tokenId),
+                      SelectedOffer.indexNFT,
+                    );
                   } catch (error) {
                     throw error;
                   } finally {
@@ -320,19 +403,25 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
     if (show.showCancelOffer) {
       return (
         <Dialog open={show.showCancelOffer} onOpenChange={CloseCancel}>
-          <DialogContent className="dark text-white">
+          <DialogContent className="comic-panel text-foreground bg-card">
             <DialogHeader>
               <DialogTitle>Cancel Offer </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col">
-              <span>You cancel offer NFT with tokenId : #00{nft?.tokenId}</span>
-              <span>Sale Price : {formatBalance(BigInt(SelectedOffer.price).toString())} KYS</span>
+              <span>You cancel offer NFT with tokenId : #{nft?.tokenId}</span>
+              <span>
+                Sale Price :{" "}
+                {formatBalance(BigInt(SelectedOffer.price).toString())} KYS
+              </span>
             </div>
             <DialogFooter>
               <Button
                 onClick={async () => {
                   try {
-                    await handleCancelOffer(Number(SelectedOffer.tokenId), SelectedOffer.indexNFT);
+                    await handleCancelOffer(
+                      Number(SelectedOffer.tokenId),
+                      SelectedOffer.indexNFT,
+                    );
                   } catch (error) {
                     throw error;
                   } finally {
@@ -354,65 +443,103 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
       <Dialog open={isOpen} onOpenChange={onClose}>
         {flowNotice()}
         {Loading ? (
-          <DialogContent className="dark m-w min-h-[70vh] text-white">
+          <DialogContent className="comic-panel m-w min-h-[70vh] text-foreground bg-card">
             <DialogHeader className="flex-row justify-between h-[30px] cookie-text">
-              <DialogTitle className="text-2xl text-white">{nft?.name}</DialogTitle>
+              <DialogTitle className="text-2xl text-foreground cookie-text">
+                {nft?.name}
+              </DialogTitle>
             </DialogHeader>
-            <div className="m-w min-h-[70vh] text-white flex justify-center items-center">
+            <div className="m-w min-h-[70vh] text-foreground flex justify-center items-center">
               <LoadingLayout Loading={Loading} />
             </div>
           </DialogContent>
         ) : (
           <DialogContent
-            className="dark m-w max-h-[90vh]
-     text-white"
+            className="comic-panel m-w max-h-[90vh] text-foreground bg-card"
           >
             <DialogHeader className="flex-row justify-between h-[30px] cookie-text">
-              <DialogTitle className="text-2xl text-white">{nft?.name}</DialogTitle>
+              <DialogTitle className="text-2xl text-foreground cookie-text">
+                {nft?.name}
+              </DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="flex items-center justify-center relative ">
                 <div className=" w-full overflow-hidden rounded-lg bg-background sticky">
-                  <img src={nft?.image || "/placeholder.svg"} alt={nft?.name} className="h-auto w-full object-cover scale-75 " />
+                  <img
+                    src={nft?.image || "/placeholder.svg"}
+                    alt={nft?.name}
+                    className="h-auto w-full object-cover scale-75 "
+                  />
                 </div>
               </div>
               <div className="max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
                 <div className="space-y-6">
                   <div className="flex flex-col lg:flex-row items-center gap-3 justify-center">
-                    <img src={nft?.trait.rarity ? images[nft?.trait.rarity] : ""} className="w-[200px] h-[50px] scale-100 inline-block rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary" />
-                    <p className="rounded-full bg-primary/20 px-4 py-2 text-lg font-semibold text-foreground cookie-text">{nft?.trait.class}</p>
-                    <div className="flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary">
-                      <img src={nft?.trait.element ? images[nft?.trait.element] : ""} className="" />
-                      <p className="text-lg font-semibold cookie-text text-foreground">{nft?.trait.element}</p>
+                    <img
+                      src={nft?.trait.rarity ? images[nft?.trait.rarity] : ""}
+                      className="w-[180px] h-[50px] scale-100 inline-block rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary btn-info"
+                    />
+                    <p className="rounded-full bg-primary/20 px-4 py-2 text-[20px] font-semibold text-foreground cookie-text btn-info">
+                      {nft?.trait.class}
+                    </p>
+                    <div className="flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary btn-info">
+                      <img
+                        src={
+                          nft?.trait.element ? images[nft?.trait.element] : ""
+                        }
+                        className=""
+                      />
+                      <p className="text-lg font-semibold cookie-text text-foreground">
+                        {nft?.trait.element}
+                      </p>
                     </div>
                   </div>
                   <div className="flex justify-center my-15 rounded-full bg-primary/20 px-4 py-2 h-[150px]">
                     <RiDoubleQuotesL size={30} className="mb-[10px]" />
-                    <span className="text-2xl font-semibold text-center my-auto cookie-text text-gray-400">{nft?.subscription}</span>
+                    <span className="text-2xl font-semibold text-center my-auto cookie-text text-gray-400">
+                      {nft?.subscription}
+                    </span>
                     <RiDoubleQuotesR size={30} className="mt-auto" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Collection</p>
-                    <p className="text-lg font-semibold text-foreground">Cookie Exclusive Collection</p>
+                  <div className="flex justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Collection
+                      </p>
+                      <p className="text-lg font-semibold text-foreground">
+                        Cookie Exclusive Collection
+                      </p>
+                    </div>
+                    <button type="button" className="btn-game" onClick={async () => await reload()}>Reload</button>
                   </div>
                   <div className="space-y-3 rounded-lg border border-border bg-background p-4">
                     {isOwner.get(nft.tokenId.toString())?.status ? (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Current Price</span>
-                        <span className="text-xl font-bold text-primary">{isOwner.get(nft?.tokenId.toString())?.price} KYS</span>
+                        <span className="text-sm text-muted-foreground">
+                          Current Price
+                        </span>
+                        <span className="text-xl font-bold text-primary">
+                          {isOwner.get(nft?.tokenId.toString())?.price} KYS
+                        </span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
                         {latestSold ? (
                           <>
                             {" "}
-                            <span className="text-sm text-muted-foreground">Latest Sale</span>
-                            <span className="text-lg font-semibold text-foreground">{latestSold} KYS</span>
+                            <span className="text-sm text-muted-foreground">
+                              Latest Sale
+                            </span>
+                            <span className="text-lg font-semibold text-foreground">
+                              {latestSold} KYS
+                            </span>
                           </>
                         ) : (
                           <>
                             {" "}
-                            <span className="text-sm text-muted-foreground">Not Sale</span>
+                            <span className="text-sm text-muted-foreground">
+                              Not Sale
+                            </span>
                           </>
                         )}
                       </div>
@@ -421,75 +548,107 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Token ID</span>
-                      <span className="font-mono text-foreground">#000{nft?.tokenId}</span>
+                      <span className="font-mono text-foreground">
+                        #{nft?.tokenId}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Contract</span>
                       <span className="font-mono text-xs text-primary">
-                        {Address.contractAddress.substring(0, 4)}...{Address.contractAddress.substring(Address.contractAddress.length, Address.contractAddress.length - 4)}
+                        {Address.contractAddress.substring(0, 4)}...
+                        {Address.contractAddress.substring(
+                          Address.contractAddress.length,
+                          Address.contractAddress.length - 4,
+                        )}
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-3 pt-4">
-                    {isOwner.get(nft.tokenId.toString())?.owner !== signer.toLowerCase() && isOwner.get(nft.tokenId.toString()) && (
+                  {pmsData &&
+                  pmsData.approvalForAlls.length > 0 &&
+                  pmsData.kryptosApprovals.length > 0 ? (
+                    <div className="flex gap-3 pt-4">
+                      {isOwner.get(nft.tokenId.toString())?.owner !==
+                        signer.toLowerCase() &&
+                        isOwner.get(nft.tokenId.toString()) && (
+                          <Button
+                            className="flex-1"
+                            size="lg"
+                            onClick={async () => {
+                              await executeOrder(SelectedOrder);
+                            }}
+                          >
+                            Buy Now
+                          </Button>
+                        )}{" "}
+                      {isOwner.get(nft.tokenId.toString())?.owner ===
+                        signer.toLowerCase() &&
+                      isOwner.get(nft.tokenId.toString())?.status ? (
+                        <Button
+                          disabled={signer === Address.ownerAddress}
+                          className="flex-1"
+                          size="lg"
+                          onClick={async () => {
+                            handleCancel(nft);
+                          }}
+                        >
+                          <div className="flex items-center gap-2 text-[15px]">
+                            <MdOutlineCancel />
+                            Cancel Listing
+                          </div>
+                        </Button>
+                      ) : (
+                        <Button
+                          className="flex-1"
+                          size="lg"
+                          disabled={signer !== Address.ownerAddress}
+                          onClick={async () => {
+                            setShow((prev) => {
+                              return {
+                                ...prev,
+                                showAddOrder: !prev.showAddOrder,
+                              };
+                            });
+                          }}
+                        >
+                          <div className="flex items-center gap-2 text-[15px]">
+                            List For Sale
+                          </div>
+                        </Button>
+                      )}
                       <Button
-                        className="flex-1 bg-black text-white hover:bg-white hover:text-black"
+                        disabled={
+                          isOwner.get(nft.tokenId.toString())?.owner ===
+                            signer.toLowerCase() ||
+                          Address.ownerAddress === signer
+                        }
+                        className="flex-1"
                         size="lg"
-                        onClick={async () => {
-                          await executeOrder(SelectedOrder);
-                        }}
-                      >
-                        Buy Now
-                      </Button>
-                    )}{" "}
-                    {isOwner.get(nft.tokenId.toString())?.owner === signer.toLowerCase() && isOwner.get(nft.tokenId.toString())?.status ? (
-                      <Button
-                        disabled={signer === Address.ownerAddress}
-                        className="flex-1 hover:bg-black hover:text-white"
-                        size="lg"
-                        onClick={async () => {
-                          handleCancel(nft);
-                        }}
-                      >
-                        <div className="flex items-center gap-2 text-[15px]">
-                          <MdOutlineCancel />
-                          Cancel Listing
-                        </div>
-                      </Button>
-                    ) : (
-                      <Button
-                        className="flex-1 hover:bg-black hover:text-white"
-                        size="lg"
-                        disabled={signer !== Address.ownerAddress}
                         onClick={async () => {
                           setShow((prev) => {
-                            return { ...prev, showAddOrder: !prev.showAddOrder };
+                            return {
+                              ...prev,
+                              showAddOffer: !prev.showAddOffer,
+                            };
                           });
                         }}
                       >
-                        <div className="flex items-center gap-2 text-[15px]">List For Sale</div>
+                        {show.showAddOffer ? (
+                          <div className="flex items-center gap-2 text-[15px]">
+                            <MdOutlineCancel />
+                            Cancel
+                          </div>
+                        ) : (
+                          "Make Offer"
+                        )}
                       </Button>
-                    )}
-                    <Button
-                      disabled={isOwner.get(nft.tokenId.toString())?.owner === signer.toLowerCase() || Address.ownerAddress === signer}
-                      className="flex-1 hover:bg-black hover:text-white"
-                      size="lg"
-                      onClick={async () => {
-                        setShow((prev) => {
-                          return { ...prev, showAddOffer: !prev.showAddOffer };
-                        });
-                      }}
-                    >
-                      {show.showAddOffer ? (
-                        <div className="flex items-center gap-2 text-[15px]">
-                          <MdOutlineCancel />
-                          Cancel
-                        </div>
-                      ) : (
-                        "Make Offer"
-                      )}
-                    </Button>
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-yellow-500">
+                        Accept permission to trade on market
+                      </p>
+                    </div>
+                  )}
 
                   <DropdownComponent isOpen={show.showAddOrder}>
                     <div className="flex flex-col min-h-[250px] items-center border-y-gray-500 border-y-1 justify-center gap-5">
@@ -501,19 +660,25 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       <div className="flex justify-between w-full text-muted-foreground text-[13px]">
                         <span>Owner NFT</span>
                         <span>
-                          {Address.ownerAddress.substring(0, 4)}...{Address.ownerAddress.substring(Address.ownerAddress.length, Address.ownerAddress.length - 4)}
+                          {Address.ownerAddress.substring(0, 4)}...
+                          {Address.ownerAddress.substring(
+                            Address.ownerAddress.length,
+                            Address.ownerAddress.length - 4,
+                          )}
                         </span>
                       </div>
 
                       <div className="flex gap-3">
                         <div className="flex justify-between items-center border-1 rounded-[10px] w-[250px] h-[40px] ">
                           <input
-                            className="background-black border-0 outline-none mx-1 [&::-webkit-inner-spin-button]:appearance-none
+                            className=" border-0 outline-none mx-1 [&::-webkit-inner-spin-button]:appearance-none
     [&::-webkit-outer-spin-button]:appearance-none"
-                            type="number"
-                            onChange={(e) => setOrderPrice(Number(e.target.value))}
+                            type="number" min={0} max={10000000}
+                            onChange={(e) =>
+                              setOrderPrice(Number(e.target.value))
+                            }
                           />
-                          <span className="mx-auto">KYS</span>
+                          <span className="mx-auto cookie-text text-[17px]">KYS</span>
                         </div>
                         <Button
                           onClick={async () => {
@@ -525,14 +690,26 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       </div>
                       <div className="text-muted-foreground text-[17px] font-bold flex justify-between w-full h-[30px] border-t-1 pt-1 border-t-gray-700">
                         <span>Market Fee</span>
-                        <span>{Number(OrderPrice * (feeRate[0]?.feeRate / 10 ** (2 + Number(feeRate[0]?.feeByDecimal)))).toFixed(4)} KYS</span>
+                        <span>
+                          {Number(
+                            OrderPrice *
+                              (feeRate[0]?.feeRate /
+                                10 ** (2 + Number(feeRate[0]?.feeByDecimal))),
+                          ).toFixed(4)}{" "}
+                          KYS
+                        </span>
                       </div>
-                      <span className="text-yellow-300">Notice: This project is on testnet so you only use KYS token to trade NFTs on this marketplace</span>
+                      <span className="text-yellow-300">
+                        Notice: This project is on testnet so you only use KYS
+                        token to trade NFTs on this marketplace
+                      </span>
                     </div>
                   </DropdownComponent>
                   <DropdownComponent isOpen={show.showAddOffer}>
                     <div className="flex flex-col min-h-[250px] items-center border-y-gray-500 border-y-1 justify-center gap-5">
-                      <span className="text-xl font-semibold">OFFER INFORMATION</span>
+                      <span className="text-xl font-semibold">
+                        OFFER INFORMATION
+                      </span>
                       <div className="flex justify-between w-full text-muted-foreground text-[13px]">
                         <span>Token ID</span>
                         <span>#00{nft?.tokenId}</span>
@@ -540,7 +717,11 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       <div className="flex justify-between w-full text-muted-foreground text-[13px]">
                         <span>Owner NFT</span>
                         <span>
-                          {Address.ownerAddress.substring(0, 4)}...{Address.ownerAddress.substring(Address.ownerAddress.length, Address.ownerAddress.length - 4)}
+                          {Address.ownerAddress.substring(0, 4)}...
+                          {Address.ownerAddress.substring(
+                            Address.ownerAddress.length,
+                            Address.ownerAddress.length - 4,
+                          )}
                         </span>
                       </div>
 
@@ -564,9 +745,18 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                       </div>
                       <div className="text-muted-foreground text-[17px] font-bold flex justify-between w-full h-[30px] border-t-1 pt-1 border-t-gray-700">
                         <span>Market Fee</span>
-                        <span>{OfferPrice * (feeRate[0]?.feeRate / 10 ** (2 + Number(feeRate[0]?.feeByDecimal)))} KYS</span>
+                        <span>
+                          {OfferPrice *
+                            (feeRate[0]?.feeRate /
+                              10 **
+                                (2 + Number(feeRate[0]?.feeByDecimal)))}{" "}
+                          KYS
+                        </span>
                       </div>
-                      <span className="text-yellow-300">Notice: This project is on testnet so you only use KYS token to trade NFTs on this marketplace</span>
+                      <span className="text-yellow-300">
+                        Notice: This project is on testnet so you only use KYS
+                        token to trade NFTs on this marketplace
+                      </span>
                     </div>
                   </DropdownComponent>
                   <div
@@ -577,13 +767,19 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                     }
                     className="w-full h-[40px] rounded-2xl border-2 border-solid border-gray flex justify-between items-center mb-0"
                   >
-                    <span className="text-white font-bold ml-5">List Offer</span>
-                    <FaArrowDown className={`text-white mr-5 ${show.showOffer ? "rotate-180 transition-all duration-300" : "transition-all duration-300"}`} />
+                    <span className="text-foreground font-bold ml-5 cookie-text text-[17px]">
+                      List Offer
+                    </span>
+                    <FaArrowDown
+                      className={`text-foreground mr-5 ${show.showOffer ? "rotate-180 transition-all duration-300" : "transition-all duration-300"}`}
+                    />
                   </div>
                   <DropdownComponent isOpen={show.showOffer}>
-                    <div className="text-white">
+                    <div className="text-foreground">
                       {ListOffers.length > 0 ? (
-                        <ul className="flex flex-col gap-4 w-full min-h-[300px]">{showListOffer()}</ul>
+                        <ul className="flex flex-col gap-4 w-full min-h-[300px]">
+                          {showListOffer()}
+                        </ul>
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-[300px] text-muted-foreground text-[15px]">
                           <HiOutlineSortDescending size={60} />
@@ -600,71 +796,128 @@ export default function NFTDetailDialog({ nft, isOpen, onClose, signer, feeRate,
                     }
                     className="w-full h-[40px] rounded-2xl border-2 border-solid border-gray flex justify-between items-center mb-0"
                   >
-                    <span className="text-white font-bold ml-5">History Transaction</span>
-                    <FaArrowDown className={`text-white mr-5 ${show.showHistory ? "rotate-180 transition-all duration-300" : "transition-all duration-300"}`} />
+                    <span className="text-foreground font-bold ml-5 cookie-text text-[17px]">
+                      History Transaction
+                    </span>
+                    <FaArrowDown
+                      className={`text-foreground mr-5 ${show.showHistory ? "rotate-180 transition-all duration-300" : "transition-all duration-300"}`}
+                    />
                   </div>
                   <DropdownComponent isOpen={show.showHistory}>
-                    <div className="text-white">
-                      {History !== undefined && History.historyMatcheds.length > 0 ? (
+                    <div className="text-foreground">
+                      {History !== undefined &&
+                      History.historyMatcheds.length > 0 ? (
                         <ul className="flex flex-col gap-3 w-full min-h-[300px]">
                           {History.historyMatcheds.map((item, index: any) => {
-                            if (item.type == "sale") {
+                            if (item.type == "list") {
                               return (
-                                <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
+                                <li
+                                  className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground"
+                                  key={index}
+                                >
                                   <div className="flex flex-col min-w-[150px] flex-1  text-center">
                                     <div className="flex flex-col">
                                       <span className="text-[14px] text-">
-                                        {item?.buyer.substring(0, 4)}...{item?.buyer.substring(item?.buyer.length, item?.buyer.length - 4)} <span className="text-[12px]">( Buyer )</span>
+                                        {item?.buyer.substring(0, 4)}...
+                                        {item?.buyer.substring(
+                                          item?.buyer.length,
+                                          item?.buyer.length - 4,
+                                        )}{" "}
+                                        <span className="text-[12px]">
+                                          ( Buyer )
+                                        </span>
                                       </span>
                                     </div>
                                     <div>
                                       <span className="text-[14px]">
-                                        {item?.seller.substring(0, 4)}...{item?.seller.substring(item?.seller.length, item?.seller.length - 4)}
+                                        {item?.seller.substring(0, 4)}...
+                                        {item?.seller.substring(
+                                          item?.seller.length,
+                                          item?.seller.length - 4,
+                                        )}
                                       </span>{" "}
-                                      <span className="text-[12px]">( Seller )</span>
+                                      <span className="text-[12px]">
+                                        ( Seller )
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
                                     <span className=" text-[12px]">Method</span>
-                                    <p className=" text-[14px]">{item.type === "sale" ? "Listing" : "Unknown"}</p>
+                                    <p className=" text-[14px]">
+                                      {item.type === "list"
+                                        ? "Listing"
+                                        : "Unknown"}
+                                    </p>
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
                                     <span className=" text-[12px]">Price</span>
-                                    <p className=" text-[14px]">{formatBalance(item.price.toString())} KYS</p>
+                                    <p className=" text-[14px]">
+                                      {formatBalance(item.price.toString())} KYS
+                                    </p>
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
-                                    <span className=" text-[12px]">Transaction Time</span>
-                                    <p className=" text-[14px]">{FormatTime(item.blockTimestamp)}</p>
+                                    <span className=" text-[12px]">
+                                      Transaction Time
+                                    </span>
+                                    <p className=" text-[14px]">
+                                      {FormatTime(item.blockTimestamp)}
+                                    </p>
                                   </div>
                                 </li>
                               );
                             } else if (item.type === "offer") {
                               return (
-                                <li className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground" key={index}>
+                                <li
+                                  className="flex h-[60px] justify-around items-center border-1 border-gray-500 rounded-xl text-muted-foreground"
+                                  key={index}
+                                >
                                   <div className="flex flex-col min-w-[150px] flex-1 text-center">
                                     <div className="flex flex-col ">
                                       <span className="text-[14px] ">
-                                        {item?.buyer.substring(0, 4)}...{item?.buyer.substring(item?.buyer.length, item?.buyer.length - 4)} <span className="text-[12px]">( Buyer )</span>
+                                        {item?.buyer.substring(0, 4)}...
+                                        {item?.buyer.substring(
+                                          item?.buyer.length,
+                                          item?.buyer.length - 4,
+                                        )}{" "}
+                                        <span className="text-[12px]">
+                                          ( Buyer )
+                                        </span>
                                       </span>
                                     </div>
                                     <div>
                                       <span className="text-[14px]">
-                                        {item?.seller.substring(0, 4)}...{item?.seller.substring(item?.seller.length, item?.seller.length - 4)}
+                                        {item?.seller.substring(0, 4)}...
+                                        {item?.seller.substring(
+                                          item?.seller.length,
+                                          item?.seller.length - 4,
+                                        )}
                                       </span>{" "}
-                                      <span className="text-[12px]">( Seller )</span>
+                                      <span className="text-[12px]">
+                                        ( Seller )
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
                                     <span className=" text-[12px]">Method</span>
-                                    <p className=" text-[14px]">{item.type === "offer" ? "Offer" : "Unknown"}</p>
+                                    <p className=" text-[14px]">
+                                      {item.type === "offer"
+                                        ? "Offer"
+                                        : "Unknown"}
+                                    </p>
                                   </div>
                                   <div className="flex flex-col flex-1 text-center">
                                     <span className=" text-[12px]"> Price</span>
-                                    <p className=" text-[14px]">{formatBalance(item.price.toString())} KYS</p>
+                                    <p className=" text-[14px]">
+                                      {formatBalance(item.price.toString())} KYS
+                                    </p>
                                   </div>
                                   <div className="flex flex-col flex-1  text-center">
-                                    <span className=" text-[12px]">Transaction Time</span>
-                                    <p className=" text-[14px]">{FormatTime(item.blockTimestamp)}</p>
+                                    <span className=" text-[12px]">
+                                      Transaction Time
+                                    </span>
+                                    <p className=" text-[14px]">
+                                      {FormatTime(item.blockTimestamp)}
+                                    </p>
                                   </div>
                                 </li>
                               );
