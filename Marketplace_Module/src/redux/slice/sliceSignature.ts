@@ -44,6 +44,13 @@ const addressUser = createSlice({
       state.address = action.payload.address;
       state.nonce = action.payload.nonce;
     },
+    unauthorize: (state) => {
+      state.isLoading = false;
+      state.address = "";
+      state.nonce = 0;
+      state.isError = false;
+      state.isAddressValid = false;
+    },
   },
   extraReducers(builder) {
     builder
@@ -92,5 +99,5 @@ const addressUser = createSlice({
       });
   },
 });
-export const { storeInfo } = addressUser.actions;
+export const { storeInfo,unauthorize } = addressUser.actions;
 export default addressUser.reducer;

@@ -3,7 +3,7 @@ import { useNFTContract } from "@/hooks/useNFTContract";
 import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
-import type { UserInfo } from "@/redux/slice/sliceSignature";
+import { type UserInfo, unauthorize } from "@/redux/slice/sliceSignature";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 import {
   fetchPermission,
   savePermission,
+  unauthorizePemission,
   type Permission,
 } from "@/redux/slice/slicePermission";
 import { LuCircleUser } from "react-icons/lu";
@@ -60,7 +61,7 @@ const WalletConnect = () => {
   const [sepoliaBalance, setBalance] = useState<string>("");
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
-  const saleAddr = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS
+  const saleAddr = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS;
   const { pmsData, isLoading, refetch, status } = useAddressPermission(account);
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
@@ -133,10 +134,9 @@ const WalletConnect = () => {
     }
     await logOut(account);
     dispatch(unauthorizeUser());
+    dispatch(unauthorizePemission());
+    dispatch(unauthorize());
     toast.success("Wallet is disconnected");
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
   };
   const approvePermissions = async () => {
     const idLoad = toast.loading("Transaction on progress...");
@@ -246,7 +246,13 @@ const WalletConnect = () => {
           <div className="">
             <p className="cookie-text text-xl">
               Allow permission to use this market{" "}
-              <button type="button" className="btn-game cookie-text text-[17px]" onClick={() => setDialog(true)}>Sign</button>
+              <button
+                type="button"
+                className="btn-game cookie-text text-[17px]"
+                onClick={() => setDialog(true)}
+              >
+                Sign
+              </button>
             </p>
             <div className="absolute">
               <Dialog open={DialogState} onOpenChange={() => setDialog(false)}>
@@ -318,11 +324,10 @@ const WalletConnect = () => {
           <DropdownMenuTrigger className="">
             {account && (
               <div className="drop-header">
-                <LuCircleUser
-                  size={30}
-                  className=""
-                />
-                <p>{start}...{end}</p>
+                <LuCircleUser size={30} className="" />
+                <p>
+                  {start}...{end}
+                </p>
               </div>
             )}
           </DropdownMenuTrigger>
@@ -357,7 +362,7 @@ const WalletConnect = () => {
                 <a href="/home/market/configuration">Market Setting</a>
               </DropdownMenuItem>
             )}
-            
+
             <DropdownMenuItem className="header-setting">
               <a href="/home/nft/manage">Manage NFT</a>
             </DropdownMenuItem>

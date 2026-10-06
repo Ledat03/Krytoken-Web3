@@ -79,6 +79,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
       setLoading(false);
     }
   };
+  console.log(data)
   useEffect(() => {
     getBaseURI();
   }, [Loading]);
@@ -155,6 +156,7 @@ const NFTSetting = ({ data, state }: TokenWalletProps) => {
               className="w-[100px]"
               type="number"
               placeholder={`Token ID`}
+              min={0}
               onChange={(e) => {
                 setApprove({
                   ...approveAddress,

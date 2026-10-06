@@ -34,7 +34,7 @@ const TokenWallet: React.FC<TokenWalletProps> = ({ data, state }) => {
   useEffect(() => {
     connect();
   }, []);
-
+console.log(isConnected)
   const connect = async () => {
     const res = await fetchInfoContract();
     if (res) {

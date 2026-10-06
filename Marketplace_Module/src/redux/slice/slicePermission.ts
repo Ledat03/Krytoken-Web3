@@ -16,30 +16,36 @@ const initialState: PermissionState = {
   loading: false,
   error: null,
 };
-export const savePermission = createAsyncThunk("/save/permission", async (permission: Permission) => {
-  if (permission == null) {
-    console.log("first");
-    return;
-  }
-  try {
-    const response = await updatePermission(permission);
-    console.log(response);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-});
-export const fetchPermission = createAsyncThunk("/fetch/permission", async (address: string) => {
-  if (!address) {
-    return;
-  }
-  try {
-    const response = await getPermission(address);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-});
+export const savePermission = createAsyncThunk(
+  "/save/permission",
+  async (permission: Permission) => {
+    if (permission == null) {
+      console.log("first");
+      return;
+    }
+    try {
+      const response = await updatePermission(permission);
+      console.log(response);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+);
+export const fetchPermission = createAsyncThunk(
+  "/fetch/permission",
+  async (address: string) => {
+    if (!address) {
+      return;
+    }
+    try {
+      const response = await getPermission(address);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+);
 const StatePermission = createSlice({
   name: "Permission",
   initialState,
@@ -49,13 +55,16 @@ const StatePermission = createSlice({
         state.data = action.payload.data;
       }
     },
+    unauthorizePemission: (state) => {
+      state.data = null;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(savePermission.pending, (state) => {
       state.loading = true;
       state.error = null;
     });
-    builder.addCase(savePermission.fulfilled, (state,action) => {
+    builder.addCase(savePermission.fulfilled, (state, action) => {
       state.loading = false;
       state.data = action.payload;
     });
@@ -77,5 +86,5 @@ const StatePermission = createSlice({
     });
   },
 });
-export const { fillPermission } = StatePermission.actions;
+export const { fillPermission, unauthorizePemission } = StatePermission.actions;
 export default StatePermission.reducer;

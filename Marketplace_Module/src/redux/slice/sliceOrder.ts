@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 export interface IOrderAdded {
   tokenId: number;
   isListing: boolean;
-  price: BigInt;
+  price: bigint;
   orderId: number;
   owner: string;
 }

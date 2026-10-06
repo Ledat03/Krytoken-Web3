@@ -492,12 +492,19 @@ background-color: #e8a21770;
 
   --sidebar-ring: #e8a317;
 }
-
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    
+  }
+  Input{
+    @apply border-dashed 
   }
 }
