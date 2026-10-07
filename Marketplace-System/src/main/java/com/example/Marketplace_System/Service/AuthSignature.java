@@ -63,8 +63,8 @@ public class AuthSignature {
             String jwtRefreshToken = generateJWT.generateRefreshToken(verifySignature.getAddress());
             String jwtAccessToken = generateJWT.generateAccessToken(verifySignature.getAddress());
             addressService.verifiedAddress(address.getAddress(), newNonce, jwtRefreshToken);
-            ResponseCookie responseRefresh = ResponseCookie.from("refreshToken", jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).build();
-            ResponseCookie responseAccess = ResponseCookie.from("accessToken", jwtAccessToken).maxAge(expiredAccessToken).httpOnly(true).build();
+            ResponseCookie responseRefresh = ResponseCookie.from("refreshToken", jwtRefreshToken).maxAge(expiredRefreshToken).httpOnly(true).sameSite("None").build();
+            ResponseCookie responseAccess = ResponseCookie.from("accessToken", jwtAccessToken).maxAge(expiredAccessToken).httpOnly(true).sameSite("None").build();
             VerifiedSignature verifiedSignature = new VerifiedSignature(address.getAddress(), jwtAccessToken, true, newNonce);
             return ResponseEntity.status(200).header(HttpHeaders.SET_COOKIE, responseRefresh.toString()).header(HttpHeaders.SET_COOKIE, responseAccess.toString()).body(verifiedSignature);
         }
