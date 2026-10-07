@@ -62,7 +62,7 @@
                     .formLogin(AbstractHttpConfigurer::disable)
                     .cors(configurer -> configurer.configurationSource(request -> {
                 CorsConfiguration corsConfiguration = new CorsConfiguration();
-                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
+                corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000","https://magic-oven-marketplace.vercel.app/"));
                 corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
                 corsConfiguration.setAllowCredentials(true);
                 corsConfiguration.addAllowedHeader("*");
