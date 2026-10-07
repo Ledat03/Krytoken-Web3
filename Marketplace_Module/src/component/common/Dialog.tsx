@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-useless-catch */
 import {
   Dialog,
   DialogContent,
@@ -27,7 +25,6 @@ import { toast } from "sonner";
 import { getPermission } from "@/service/MainService";
 import { formatBalance } from "@/utils/common";
 import { useAddressPermission } from "@/service/QueryService";
-import { set } from "date-fns";
 interface NFTDetailDialogProps {
   nft: NFTProperty | null;
   isOpen: boolean;
@@ -76,11 +73,11 @@ export default function NFTDetailDialog({
     contractAddress: "",
     ownerAddress: "",
   });
-const validationMessage = useMemo(() => {
-  if(OrderPrice > 10000000) return "Price doesn't exceed 10000000 KYS";
-  if(OrderPrice === 0) return "fill the price for your NFT"
-  return "";
-},[OrderPrice])
+// const validationMessage = useMemo(() => {
+//   if(OrderPrice > 10000000) return "Price doesn't exceed 10000000 KYS";
+//   if(OrderPrice === 0) return "fill the price for your NFT"
+//   return "";
+// },[OrderPrice])
   const [History, setHistory] = useState<ListSale>();
   const isOwner = useMemo(() => {
     const map = new Map<string, MatchedNFT>();

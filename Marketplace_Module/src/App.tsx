@@ -1,5 +1,5 @@
 import Header from "./component/common/Header";
-import Footer from "./component/common/footer";
+import Footer from "./component/common/Footer";
 import SideBar from "./component/common/SideBar";
 import { Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";

@@ -17,7 +17,6 @@ import images from "@/utils/imageCustom";
 import UploadPinata from "@/service/UploadPinata";
 import { toast } from "sonner";
 const CreateNFT = () => {
-  const isConnected: boolean = useSelector((state: RootState) => state.Info.isConnected);
   const { mintNFT } = useNFTContract();
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const { handleUploadImage, handleUploadJson, uploadStatus } = UploadPinata();

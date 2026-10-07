@@ -10,7 +10,7 @@ import {
   FetchOwnerNFTs,
 } from "@/GraphQL/SubgraphQuery";
 import { useQuery } from "@tanstack/react-query";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { type NFTProperty } from "@/redux/slice/sliceNFTs";
 import {
   fetchMarketInfo,
@@ -30,8 +30,6 @@ import { PinataSDK } from "pinata";
 import { setLatestSoldData } from "@/redux/slice/sliceLastestSold";
 import { useNFTContract } from "@/hooks/useNFTContract";
 import type { AddressPermission } from "@/utils/interfaceStore";
-import type { RootState } from "@/redux/store";
-
 const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT_KEY!,
   pinataGateway: `${import.meta.env.VITE_GATEWAY_URL}`,

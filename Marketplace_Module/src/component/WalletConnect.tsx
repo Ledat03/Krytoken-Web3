@@ -39,7 +39,7 @@ const WalletConnect = () => {
   const { connectWallet, getSignature, approveTokens, error, switchAccount } =
     useContract();
   const { setApprovalForAll } = useNFTContract();
-  const [Loading, setLoading] = useState<boolean>(false);
+  // const [Loading, setLoading] = useState<boolean>(false);
   const [PermissionAccount, setAccounts] = useState<string[] | undefined>(
     undefined,
   );
@@ -62,7 +62,7 @@ const WalletConnect = () => {
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
   const saleAddr = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS;
-  const { pmsData, isLoading, refetch, status } = useAddressPermission(account);
+  const { pmsData, refetch } = useAddressPermission(account);
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
     setAccounts(res);

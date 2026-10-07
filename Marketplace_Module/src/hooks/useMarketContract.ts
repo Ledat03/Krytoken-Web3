@@ -2,7 +2,7 @@
 import { marketService } from "@/service/MarketplaceService";
 import { ethers } from "ethers";
 import { useCallback } from "react";
-import { fa } from "zod/v4/locales";
+// import { fa } from "zod/v4/locales";
 
 export const useMarketContract = () => {
   const connectMarket = useCallback(async () => {

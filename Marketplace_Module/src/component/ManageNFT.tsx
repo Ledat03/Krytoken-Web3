@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NFTCard from "./NFTCard";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import  {type IListOrder } from "@/redux/slice/sliceOrder";
 import type { RootState } from "@/redux/store";
@@ -13,9 +13,9 @@ export default function NFTManager() {
   );
   const signer = useSelector((state: RootState) => state.Info.userAddress);
   const deployer = import.meta.env.VITE_DEPLOYER;
-  const { NFTs, NFTstatus, refetchListNFT, isFetching } = useManageNFTs(signer,OrderData);
-  const isInitialLoading = NFTstatus === "pending" && NFTs.length === 0;
-  const isLoadingMore = NFTstatus === "pending" && NFTs.length > 0;
+  const { NFTs, refetchListNFT } = useManageNFTs(signer,OrderData);
+  // const isInitialLoading = NFTstatus === "pending" && NFTs.length === 0;
+  // const isLoadingMore = NFTstatus === "pending" && NFTs.length > 0;
   
   useQueryOrderAdded();
   console.log(OrderData)

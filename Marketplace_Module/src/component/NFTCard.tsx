@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import type { NFTProperty } from "@/redux/slice/sliceNFTs";
 import images from "@/utils/imageCustom";
 import { useNFTContract } from "@/hooks/useNFTContract";
-import { useMarketContract } from "@/hooks/useMarketContract";
+// import { useMarketContract } from "@/hooks/useMarketContract";
 import { useEffect, useState } from "react";
 import { formatBalance } from "@/utils/common";
 import NFTDetailDialog from "./common/Dialog";
@@ -26,10 +26,10 @@ export default function NFTCard({ nft, signer,listed}: { nft: NFTProperty; signe
     OpenSale: false,
   });
   console.log(listed)
-  const token = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
-  const [formSale, setForm] = useState({ tokenTransfer: token, tokenId: nft.tokenId, price: 0 });
+  // const token = import.meta.env.VITE_KYS_CONTRACT_ADDRESS;
+  // const [formSale, setForm] = useState({ tokenTransfer: token, tokenId: nft.tokenId, price: 0 });
   const closeDetail = () => setOpen((prev) => ({ ...prev, OpenDetail: false }));
-  const { addOrder } = useMarketContract();
+  // const { addOrder } = useMarketContract();
   const fetchOwner = async (tokenId: number) => {
     const res = await getOwnerOf(tokenId);
     if (res) setOwner(res);
@@ -79,7 +79,7 @@ console.log(listed)
             <span className=" self-center text-muted-foreground text-[14px] opacity-0 group-hover:opacity-100">Click to see more detail </span>
           </CardFooter>
         </Card>
-        {Open.OpenDetail && <NFTDetailDialog nft={nft} isOpen={Open.OpenDetail} onClose={() => closeDetail()} signer={signer} feeRate={infoMarket} ListOrder={OrderData} reload={refetchOrderAdded} />}
+        {Open.OpenDetail && <NFTDetailDialog nft={nft} isOpen={Open.OpenDetail} onClose={() => closeDetail()} signer={signer} feeRate={infoMarket} ListOrder={OrderData} reload={refetchOrderAdded} latestSold={undefined} />}
       </>
     );
   }

@@ -14,7 +14,7 @@ export default function MarketplaceSettings() {
   const [Loading, setLoading] = useState(false);
   const { MarketStatus, refetchMarketInfo } = useQueryMarketInfo();
   const connect = async () => {
-    const res = await connectMarket();
+    await connectMarket();
   };
   useEffect(() => {
     connect();
@@ -27,7 +27,6 @@ export default function MarketplaceSettings() {
   };
   const FeeRate: number = useSelector((state: RootState) => state.marketInfo.feeUpdateds[0]?.feeRate);
   const FeeByDecimal: number = useSelector((state: RootState) => state.marketInfo.feeUpdateds[0]?.feeByDecimal);
-  const signer = useSelector((state: RootState) => state.identifyAddress.address);
   const changeFeeRate = async (FeeByDecimal: number, FeeRate: number) => {
     setLoading(true);
     try {
