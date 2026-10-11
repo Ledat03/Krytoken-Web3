@@ -4,7 +4,6 @@ import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import { type UserInfo } from "@/redux/slice/sliceSignature";
-import { formatBalance } from "@/utils/common";
 import {
   DropdownMenu,
   DropdownMenuContent,
