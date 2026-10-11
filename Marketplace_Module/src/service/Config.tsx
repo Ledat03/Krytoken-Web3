@@ -3,7 +3,7 @@ import { renewRefreshToken, logOut } from "./MainService";
 import { unauthorizeUser } from "@/redux/slice/sliceInfoToken";
 import { toast } from "sonner";
 const API_Base = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_API,
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true,
 });
 API_Base.interceptors.request.use((config) => {

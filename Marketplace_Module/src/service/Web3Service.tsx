@@ -10,7 +10,6 @@ export class Web3Service {
     if (window.ethereum) {
       this.provider = new ethers.BrowserProvider(window.ethereum);
       this.signer = await this.provider.getSigner();
-     
     } else {
       console.error("MetaMask not detected!");
     }
@@ -24,7 +23,7 @@ export class Web3Service {
         this.provider = new ethers.BrowserProvider(window.ethereum);
         this.signer = await this.provider.getSigner();
         console.log(this.signer);
-      console.log(this.provider);
+        console.log(this.provider);
       }
       console.log(this.getSigner());
       if (this.signer) return this.signer?.address;
@@ -41,6 +40,10 @@ export class Web3Service {
   }
   public setSigner() {
     this.signer = null;
+  }
+  public resetPermission() {
+    this.signer = null;
+    this.provider = null;
   }
 }
 export const Web3 = new Web3Service();

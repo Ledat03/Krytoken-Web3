@@ -33,6 +33,7 @@ const BuyToken = () => {
   const getAmountToken = async () => {
     if (!userAddress) {
       console.log("User address not available yet");
+      setAmount({ nativeToken: "", KYSToken: "" });
       return;
     }
     if (!Web3.getProvider()) {
@@ -81,7 +82,8 @@ const BuyToken = () => {
     getAmountToken();
   }, [userAddress]);
   const validationBuyMessage = useMemo(() => {
-    if (!isValidNumber || parsedEth <= 0) return "Enter your amount of SepoliaETH";
+    if (!isValidNumber || parsedEth <= 0)
+      return "Enter your amount of SepoliaETH";
     if (parsedEth < MIN_ETH)
       return `You need to buy as least ${MIN_ETH} sepolia`;
     if (Number(ethAmount) >= Number(AmountToken.nativeToken))

@@ -3,7 +3,8 @@ import { useNFTContract } from "@/hooks/useNFTContract";
 import { checkSignature } from "@/redux/slice/sliceSignature";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
-import { type UserInfo, unauthorize } from "@/redux/slice/sliceSignature";
+import { type UserInfo } from "@/redux/slice/sliceSignature";
+import { formatBalance } from "@/utils/common";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +15,6 @@ import {
 import {
   fetchPermission,
   savePermission,
-  unauthorizePemission,
   type Permission,
 } from "@/redux/slice/slicePermission";
 import { LuCircleUser } from "react-icons/lu";
@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import { Web3 } from "@/service/Web3Service";
 import { toast } from "sonner";
 import { logOut } from "@/service/MainService";
-import { unauthorizeUser, type TokenInfo } from "@/redux/slice/sliceInfoToken";
+import { type TokenInfo } from "@/redux/slice/sliceInfoToken";
 import { ethers } from "ethers";
 import { DropdownMenuLabel } from "@radix-ui/react-dropdown-menu";
 import { useAddressPermission } from "@/service/QueryService";
@@ -36,8 +36,14 @@ import {
 } from "@/components/ui/dialog";
 const WalletConnect = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { connectWallet, getSignature, approveTokens, error, switchAccount } =
-    useContract();
+  const {
+    connectWallet,
+    getSignature,
+    approveTokens,
+    error,
+    switchAccount,
+    LogoutWallet,
+  } = useContract();
   const { setApprovalForAll } = useNFTContract();
   // const [Loading, setLoading] = useState<boolean>(false);
   const [PermissionAccount, setAccounts] = useState<string[] | undefined>(
@@ -62,13 +68,15 @@ const WalletConnect = () => {
   const deployer = import.meta.env.VITE_DEPLOYER;
   const marketAdr = import.meta.env.VITE_Marketplace_CONTRACT_ADDRESS;
   const saleAddr = import.meta.env.VITE_TokenSale_CONTRACT_ADDRESS;
-  const { pmsData, refetch } = useAddressPermission(account);
+  const { pmsData, refetch } = useAddressPermission(
+    PermissionAccount ? PermissionAccount[0] : "",
+  );
   const checkConnect = async () => {
     const res: [] = await window.ethereum?.request({ method: "eth_accounts" });
-    setAccounts(res);
-    if (res) {
-      const WalletConnect: boolean = res.length > 0 ? true : false;
-      if (WalletConnect && UserData.nonce === 0) {
+    if (res.length > 0) {
+      setAccounts(res);
+      if (UserData.nonce === 0) {
+        console.log("bug");
         await FetchInfoWallet();
       }
     }
@@ -79,10 +87,13 @@ const WalletConnect = () => {
     if (error) {
       toast.error(error, { duration: 3000 });
     }
-    if (UserData.nonce !== 0 && UserData.isAddressValid == false) {
+    if (
+      isConnected &&
+      UserData.nonce !== 0 &&
+      UserData.isAddressValid == false
+    ) {
       IdentifyUser();
     }
-
     if (account !== "" && UserData.isAddressValid) {
       if (
         pmsData === undefined &&
@@ -98,7 +109,9 @@ const WalletConnect = () => {
     } else {
       fetchBalance();
     }
-  }, [isConnected, error, UserData.nonce, UserData.isAddressValid, pmsData]);
+    console.log(pmsData);
+    checkPermission();
+  }, [isConnected, error, UserData.nonce, UserData.isAddressValid, account]);
   const fetchBalance = async () => {
     const provider = Web3.getProvider();
     const signer = Web3.getSigner();
@@ -125,17 +138,8 @@ const WalletConnect = () => {
   };
 
   const DisconnectWallet = async () => {
-    localStorage.removeItem("accessToken");
-    if (window.ethereum?.request) {
-      await window.ethereum.request({
-        method: "wallet_revokePermissions",
-        params: [{ eth_accounts: {} }],
-      });
-    }
     await logOut(account);
-    dispatch(unauthorizeUser());
-    dispatch(unauthorizePemission());
-    dispatch(unauthorize());
+    await LogoutWallet();
     toast.success("Wallet is disconnected");
   };
   const approvePermissions = async () => {
@@ -174,14 +178,12 @@ const WalletConnect = () => {
       } else {
         isApprovedNFT = true;
       }
-      console.log(isApprovedNFT + " " + isApprovedToken);
       if (isApprovedToken || isApprovedNFT) {
         permissionData.tokenAllowance = isApprovedToken ? 100000 : 0;
         permissionData.nftAllowanceAll = isApprovedNFT;
         await dispatch(savePermission(permissionData));
         toast.success("Permission Allowed Successfully !");
       }
-
       if (!isApprovedToken) {
         toast.warning("You need allow token permission to trade on market");
       }
@@ -200,7 +202,34 @@ const WalletConnect = () => {
       }
     } finally {
       await refetch();
+      dispatch(fetchPermission(account));
       toast.dismiss(idLoad);
+    }
+  };
+  const checkPermission = async () => {
+    const permissionData: Permission = {
+      address: account,
+      tokenAllowance: 0,
+      nftAllowanceAll: false,
+    };
+    if (
+      pmsData &&
+      PermissionState != null &&
+      pmsData.approvalForAlls[0] != null &&
+      pmsData.kryptosApprovals[0] !== null
+    ) {
+      if (
+        pmsData.approvalForAlls[0].approved !==
+          PermissionState.nftAllowanceAll ||
+        pmsData.kryptosApprovals[0].value !== PermissionState.tokenAllowance
+      ) {
+        permissionData.tokenAllowance = Number(
+          ethers.formatEther(pmsData.kryptosApprovals[0].value.toString()),
+        );
+        permissionData.nftAllowanceAll = pmsData.approvalForAlls[0].approved;
+        await dispatch(savePermission(permissionData));
+        console.log(3);
+      }
     }
   };
   const IdentifyUser = async () => {
@@ -309,7 +338,7 @@ const WalletConnect = () => {
 
       {PermissionAccount == undefined ||
       PermissionAccount.length === 0 ||
-      account === undefined ? (
+      account === "" ? (
         <button
           type="button"
           className="btn-game"
@@ -322,7 +351,7 @@ const WalletConnect = () => {
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger className="">
-            {account && (
+            {account && account !== "" && (
               <div className="drop-header">
                 <LuCircleUser size={30} className="" />
                 <p>

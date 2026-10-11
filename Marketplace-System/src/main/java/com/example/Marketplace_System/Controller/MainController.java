@@ -74,50 +74,52 @@ public class MainController {
         Cookie[] cookies = httpServletRequest.getCookies();
         String refreshToken = "";
         Address fetchAddress = addressService.findAddress(adr);
-        refreshToken = Arrays.stream(cookies).filter(cookie -> cookie.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse("");
         fetchAddress.setVerified(false);
         fetchAddress.setRefreshToken(null);
         addressService.saveAddress(fetchAddress);
-        if(!refreshToken.isBlank()){
-            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Logout successfully !!");
-        }else{
-            return ResponseEntity.ok().body("Logout successfully !!");
+        if(cookies != null) {
+            refreshToken = Arrays.stream(cookies).filter(cookie -> cookie.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse("");
+            if(!refreshToken.isBlank()){
+                ResponseCookie deleteAccess = ResponseCookie.from("accessToken", "").maxAge(0).httpOnly(true).build();
+                ResponseCookie deleteRefresh = ResponseCookie.from("refreshToken", "").maxAge(0).httpOnly(true).build();
+                HttpHeaders headers = new HttpHeaders();
+                headers.add(HttpHeaders.SET_COOKIE, deleteAccess.toString());
+                headers.add(HttpHeaders.SET_COOKIE, deleteRefresh.toString());
+                return ResponseEntity.ok().headers(headers).body("Logout successfully !!");
+            }
         }
+            return ResponseEntity.ok().body("Logout successfully !!");
     }
 
     @PostMapping("/user/refresh_token")
     public ResponseEntity<?> refreshToken(HttpServletRequest request) throws Exception {
         Instant instant = Instant.now();
         Cookie[] cookies = request.getCookies();
-        String refreshToken = Arrays.stream(cookies).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse(null);
-        if (refreshToken == null) {
-            return ResponseEntity.status(403).body("Unauthenticated !!");
-        }
-        Jwt jwtInfo = jwtDecoder.decode(refreshToken);
-        if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isBefore(instant)) {
-            Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
-            fetchAddress.setVerified(false);
-            fetchAddress.setRefreshToken(null);
-            addressService.updateAddress(fetchAddress);
-            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
-            return ResponseEntity.status(403).header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Your refresh token is expired, please login again !!");
-        }
-        if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isAfter(instant)) {
-            Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
-            long random = new SecureRandom().nextLong(99999);
-            fetchAddress.setNonce(random);
-            String newAccessToken = generateJWT.generateAccessToken(jwtInfo.getSubject());
-            VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true, random);
-            addressService.saveAddress(fetchAddress);
-            return ResponseEntity.ok().body(verifiedSignature);
+        if(cookies != null) {
+            String refreshToken = Arrays.stream(cookies).filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue).orElse(null);
+            if (refreshToken == null) {
+                return ResponseEntity.status(403).body("Unauthenticated !!");
+            }
+            Jwt jwtInfo = jwtDecoder.decode(refreshToken);
+            if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isBefore(instant)) {
+                Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
+                fetchAddress.setVerified(false);
+                fetchAddress.setRefreshToken(null);
+                addressService.updateAddress(fetchAddress);
+                ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", null).maxAge(0).httpOnly(true).build();
+                return ResponseEntity.status(403).header(HttpHeaders.SET_COOKIE, deleteCookie.toString()).body("Your refresh token is expired, please login again !!");
+            }
+            if (jwtInfo.getExpiresAt() != null && jwtInfo.getExpiresAt().isAfter(instant)) {
+                Address fetchAddress = addressService.findAddress(jwtInfo.getSubject());
+                long random = new SecureRandom().nextLong(99999);
+                fetchAddress.setNonce(random);
+                String newAccessToken = generateJWT.generateAccessToken(jwtInfo.getSubject());
+                VerifiedSignature verifiedSignature = new VerifiedSignature(jwtInfo.getSubject(), newAccessToken, true, random);
+                addressService.saveAddress(fetchAddress);
+                return ResponseEntity.ok().body(verifiedSignature);
+            }
         }
         return ResponseEntity.status(403).body("Unauthenticated !!");
-    }
-
-    @PostMapping("/expiredToken")
-    public ResponseEntity<?> expiredToken() {
-        return ResponseEntity.status(200).body("Call Success !!");
     }
 
     @GetMapping("/check/permission/{address}")

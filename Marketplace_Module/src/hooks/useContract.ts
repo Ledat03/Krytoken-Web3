@@ -1,11 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { contractService } from "../service/KYSContractService";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchPermission } from "@/redux/slice/slicePermission";
+import {
+  fetchPermission,
+  unauthorizePemission,
+} from "@/redux/slice/slicePermission";
 import type { RootState, AppDispatch } from "@/redux/store";
 import type { TokenInfo, Network } from "@/redux/slice/sliceInfoToken";
-import { getUserInfo, fetchUserSwitch } from "@/redux/slice/sliceInfoToken";
-import { fetchInfoUser, switchUser } from "@/redux/slice/sliceSignature";
+import {
+  getUserInfo,
+  fetchUserSwitch,
+  unauthorizeUser,
+} from "@/redux/slice/sliceInfoToken";
+import { fetchInfoUser, switchUser, unauthorize } from "@/redux/slice/sliceSignature";
 import { type JsonRpcSigner } from "ethers";
 
 export const useContract = () => {
@@ -28,6 +35,8 @@ export const useContract = () => {
   const connectWallet = useCallback(async () => {
     setLoading(true);
     setError(undefined);
+    console.log("check run");
+    await checkConnection();
     try {
       const connectedAccount = await contractService.connectWallet();
       if (connectedAccount && connectedAccount.substring(0, 2) === "0x") {
@@ -43,7 +52,7 @@ export const useContract = () => {
           }),
         );
         await dispatch(fetchInfoUser(connectedAccount.toString()));
-        await  dispatch(fetchPermission(connectedAccount.toString()))
+        await dispatch(fetchPermission(connectedAccount.toString()));
 
         return connectedAccount;
       } else {
@@ -150,7 +159,6 @@ export const useContract = () => {
       const success = await contractService.approveToken(spender, amount);
       if (success) {
         return true;
-        
       } else {
         setError("Approval failed");
         return false;
@@ -162,30 +170,28 @@ export const useContract = () => {
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const currentAccount = await contractService.getCurrentAccount();
-        if (currentAccount) {
-          const networkData = await loadNetworkInfo();
-          const tokenData = await loadTokenBalances(currentAccount);
-          dispatch(
-            getUserInfo({
-              userAddress: currentAccount,
-              networks: networkData,
-              tokenList: tokenData,
-              isConnected: true,
-            }),
-          );
-        }
-      } catch (err) {
-        console.log("Wallet not connected");
-        throw err;
+  const checkConnection = async () => {
+    try {
+      const currentAccount = await contractService.getCurrentAccount();
+      if (currentAccount) {
+        const networkData = await loadNetworkInfo();
+        const tokenData = await loadTokenBalances(currentAccount);
+        console.log("Bugg");
+        dispatch(
+          getUserInfo({
+            userAddress: currentAccount,
+            networks: networkData,
+            tokenList: tokenData,
+            isConnected: true,
+          }),
+        );
       }
-    };
-
-    checkConnection();
+    } catch (err) {
+      console.log("Wallet not connected");
+      throw err;
+    }
+  };
+  useEffect(() => {
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", async (accounts: string[]) => {
         if (accounts.length === 0) {
@@ -242,6 +248,23 @@ export const useContract = () => {
       setLoading(false);
     }
   }, []);
+  const LogoutWallet = useCallback(async () => {
+    if (window.ethereum?.request) {
+      const listAddress: [] = await window.ethereum.request({
+        method: "eth_accounts",
+      });
+      if (listAddress.length > 0) {
+        localStorage.removeItem("accessToken");
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      }
+      dispatch(unauthorizeUser());
+      dispatch(unauthorizePemission());
+      dispatch(unauthorize());
+    }
+  }, []);
   return {
     isConnected,
     account,
@@ -256,6 +279,7 @@ export const useContract = () => {
     approveTokens,
     loadTokenBalances,
     checkBalance,
+    LogoutWallet,
     clearError: () => setError(undefined),
   };
 };
