@@ -8,10 +8,15 @@ const API_Base = axios.create({
 });
 API_Base.interceptors.request.use((config) => {
   const url = config.url || "";
-  const isPublic = url.startsWith("/api/verify_signature") || url.startsWith("/api/check_user/") || url.startsWith("/api/user/refresh_token") || url.startsWith("/api/user/log_out/");
+  const isPublic =
+    url.startsWith("/api/verify_signature") ||
+    url.startsWith("/api/check_user/") ||
+    url.startsWith("/api/user/refresh_token") ||
+    url.startsWith("/api/user/log_out/");
   if (!isPublic) {
     const token = localStorage.getItem("accessToken");
-    if (token && config.headers) (config.headers as any).Authorization = `Bearer ${token}`;
+    if (token && config.headers)
+      (config.headers as any).Authorization = `Bearer ${token}`;
   } else {
     if (config.headers) delete (config.headers as any).Authorization;
   }
@@ -24,11 +29,17 @@ API_Base.interceptors.response.use(
     const status = error.response?.status;
     const OriginalRequest = error.config;
     if (status === 401) {
-      if (!OriginalRequest._retry && !OriginalRequest.url?.includes("refresh_token")) {
+      if (
+        !OriginalRequest._retry &&
+        !OriginalRequest.url?.includes("refresh_token")
+      ) {
         try {
           OriginalRequest._retry = true;
           const renewAccessToken = await renewRefreshToken();
-          localStorage.setItem("accessToken", renewAccessToken.data.accessToken);
+          localStorage.setItem(
+            "accessToken",
+            renewAccessToken.data.accessToken,
+          );
           OriginalRequest.headers.Authorization = `Bearer ${renewAccessToken.data.accessToken}`;
           return API_Base.request(OriginalRequest);
         } catch (refreshError) {
@@ -42,7 +53,10 @@ API_Base.interceptors.response.use(
       if (adr) {
         await logOut(adr);
         localStorage.removeItem("accessToken");
-        if (window.ethereum && typeof window.ethereum.removeAllListeners === "function") {
+        if (
+          window.ethereum &&
+          typeof window.ethereum.removeAllListeners === "function"
+        ) {
           await window.ethereum.request({
             method: "wallet_revokePermissions",
             params: [{ eth_accounts: {} }],
